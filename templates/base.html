@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title or 'Страница' }}</title>
+  {% if favicon_url %}
+  <link rel="icon" href="{{ favicon_url }}">
+  {% endif %}
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background-color: {{ bg_color or '#ffffff' }};
+      color: {{ text_color or '#000000' }};
+      font-family: {{ font_family or 'Inter, sans-serif' }};
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      max-width: 600px;
+      width: 90%;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    h1 { font-size: 2rem; margin-bottom: 16px; }
+    p  { font-size: 1.1rem; line-height: 1.6; margin-bottom: 32px; opacity: 0.85; }
+    .btn {
+      display: inline-block;
+      padding: 14px 32px;
+      background: {{ text_color or '#000000' }};
+      color: {{ bg_color or '#ffffff' }};
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.8; }
+    {{ custom_css or '' }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    {% if title %}<h1>{{ title }}</h1>{% endif %}
+    {% if description %}<p>{{ description }}</p>{% endif %}
+    {% if button_text and button_url %}
+    <a class="btn" href="{{ button_url }}" target="_blank" rel="noopener">
+      {{ button_text }}
+    </a>
+    {% endif %}
+  </div>
+</body>
+</html>
