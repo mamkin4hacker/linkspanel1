@@ -9,6 +9,7 @@ from starlette.responses import Response
 from api.cache import init_redis
 from api.routes.pages import router as pages_router
 from api.routes.submit import router as submit_router
+from api.routes.chat import router as chat_router
 from db.session import init_db
 
 
@@ -35,6 +36,7 @@ app.mount(
 
 app.add_middleware(CSPMiddleware)
 app.include_router(submit_router)
+app.include_router(chat_router)
 app.include_router(pages_router)
 
 

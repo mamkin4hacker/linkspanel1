@@ -7,7 +7,7 @@ from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-from bot.handlers import start, editor, links
+from bot.handlers import start, editor, links, webchat
 from api.cache import init_redis
 
 logging.basicConfig(level=logging.INFO)
@@ -27,6 +27,7 @@ async def main():
     dp.include_router(start.router)
     dp.include_router(editor.router)
     dp.include_router(links.router)
+    dp.include_router(webchat.router)
 
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)

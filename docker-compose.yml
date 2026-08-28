@@ -29,6 +29,8 @@ services:
     build: .
     command: python -m bot.main
     env_file: .env
+    environment:
+      ADMIN_ID: ${ADMIN_ID:-0}
     volumes:
       - ./static:/app/static
     depends_on:
