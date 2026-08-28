@@ -33,20 +33,18 @@ ADMIN_ID = os.getenv("ADMIN_ID", "")
 
 async def _translate(text: str, dest: str) -> str:
     try:
-        from googletrans import Translator
-        async with Translator() as t:
-            result = await t.translate(text, dest=dest)
-            return result.text
+        from deep_translator import GoogleTranslator
+        result = GoogleTranslator(source="auto", target=dest).translate(text)
+        return result or text
     except Exception:
         return text
 
 
 async def _detect_lang(text: str) -> str:
     try:
-        from googletrans import Translator
-        async with Translator() as t:
-            result = await t.detect(text)
-            return result.lang or "ru"
+        from deep_translator import single_detection
+        lang = single_detection(text, api_key=None)
+        return lang or "ru"
     except Exception:
         return "ru"
 

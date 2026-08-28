@@ -41,10 +41,9 @@ class AdminWebChat(StatesGroup):
 
 async def _translate(text: str, dest: str) -> str:
     try:
-        from googletrans import Translator
-        async with Translator() as t:
-            result = await t.translate(text, dest=dest)
-            return result.text
+        from deep_translator import GoogleTranslator
+        result = GoogleTranslator(source="auto", target=dest).translate(text)
+        return result or text
     except Exception:
         return text
 
