@@ -103,3 +103,36 @@ def chat_scripts_links_kb(links) -> InlineKeyboardMarkup:
         builder.button(text=short, callback_data=f"chatscript:{link.subdomain}:{link.link_id}")
     builder.adjust(1)
     return builder.as_markup()
+
+
+_TRIGGER_LABELS = {
+    "open":    "открытие страницы",
+    "card":    "ввод карты",
+    "balance": "ввод баланса",
+    "error":   "ошибка",
+}
+
+
+def chat_steps_kb(steps: list) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for s in steps:
+        label = _TRIGGER_LABELS.get(s.get("trigger", ""), s.get("trigger", ""))
+        builder.button(text=label, callback_data=f"cstep:view:{s['step']}")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def chat_step_detail_kb(step_num: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="✏️ Редактировать текст",   callback_data=f"cstep:edit_text:{step_num}")
+    builder.button(text="✏️ Редактировать кнопку",  callback_data=f"cstep:edit_btn:{step_num}")
+    builder.button(text="◀️ Назад к шагам",          callback_data="cstep:back")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def chat_step_cancel_kb(step_num: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="◀️ Отмена", callback_data=f"cstep:view:{step_num}")
+    builder.adjust(1)
+    return builder.as_markup()

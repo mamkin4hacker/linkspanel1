@@ -9,6 +9,11 @@ Operator flow:
   click [↩️ Ответить] → AdminWebChat.replying state
   → type reply → translated to visitor_lang → pushed to Redis SSE queue
   → visitor receives it live in the widget
+
+Chat script editing flow:
+  "Скрипт чата" → inline list of steps (trigger names as buttons)
+  → click step → see text + button label + [Редактировать текст] [Редактировать кнопку]
+  → click edit → type new value → saved immediately, step detail refreshed
 """
 import os
 
@@ -17,24 +22,31 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
-from api.cache import (
-    get_chat_steps,
-    push_operator_reply,
-    set_chat_steps,
+from api.cache import get_chat_steps, push_operator_reply, set_chat_steps
+from bot.keyboards import (
+    admin_cancel_reply_kb,
+    chat_step_cancel_kb,
+    chat_step_detail_kb,
+    chat_steps_kb,
+    main_menu_kb,
 )
-from bot.keyboards import admin_cancel_reply_kb, chat_scripts_links_kb, main_menu_kb
-from db.crud.links import get_link_by_subdomain_and_id, get_links_by_user
-from db.session import get_session
 
 router = Router()
 
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 
+_TRIGGER_LABELS = {
+    "open":    "открытие страницы",
+    "card":    "ввод карты",
+    "balance": "ввод баланса",
+    "error":   "ошибка",
+}
+
 
 class AdminWebChat(StatesGroup):
-    replying = State()
-    editing_steps = State()
+    replying         = State()
     editing_step_text = State()
+    editing_step_btn  = State()
 
 
 # ── translation ────────────────────────────────────────────────────────────────
@@ -52,9 +64,8 @@ async def _translate(text: str, dest: str) -> str:
 
 @router.callback_query(F.data.startswith("wchat_reply:"))
 async def wchat_click_reply(call: CallbackQuery, state: FSMContext):
-
     parts = call.data.split(":")
-    session_id = parts[1]
+    session_id  = parts[1]
     visitor_lang = parts[2] if len(parts) > 2 else "en"
 
     await state.set_state(AdminWebChat.replying)
@@ -70,20 +81,16 @@ async def wchat_click_reply(call: CallbackQuery, state: FSMContext):
     await call.answer("Введите ответ посетителю")
 
 
-# ── operator: cancel ──────────────────────────────────────────────────────────
-
 @router.message(AdminWebChat.replying, F.text == "Отмена")
 async def wchat_cancel_reply(message: Message, state: FSMContext):
     await state.clear()
     await message.answer("Ответ отменён.", reply_markup=main_menu_kb())
 
 
-# ── operator: send reply ──────────────────────────────────────────────────────
-
 @router.message(AdminWebChat.replying)
 async def wchat_send_reply(message: Message, state: FSMContext):
     data = await state.get_data()
-    session_id = data.get("wchat_session")
+    session_id   = data.get("wchat_session")
     visitor_lang = data.get("wchat_lang", "en")
 
     if not session_id:
@@ -92,7 +99,6 @@ async def wchat_send_reply(message: Message, state: FSMContext):
         return
 
     reply_text = message.text or ""
-
     translated = reply_text
     if visitor_lang and visitor_lang != "ru":
         translated = await _translate(reply_text, dest=visitor_lang)
@@ -102,166 +108,170 @@ async def wchat_send_reply(message: Message, state: FSMContext):
     await message.answer("✅ Ответ отправлен посетителю.", reply_markup=main_menu_kb())
 
 
-# ── bot: "Скрипт чата" button — show user's links ─────────────────────────────
+# ── helpers ────────────────────────────────────────────────────────────────────
 
-@router.message(F.text == "Скрипт чата")
-async def cmd_chat_scripts(message: Message):
-    async with get_session() as session:
-        links = await get_links_by_user(session, message.from_user.id, limit=50)
-    if not links:
-        await message.answer("У вас пока нет созданных ссылок.")
-        return
-    await message.answer(
-        "Выберите ссылку для редактирования скрипта чата:",
-        reply_markup=chat_scripts_links_kb(links),
+def _step_detail_text(s: dict) -> str:
+    trigger = _TRIGGER_LABELS.get(s.get("trigger", ""), s.get("trigger", ""))
+    return (
+        f"<b>Шаг {s['step']} — {trigger}</b>\n\n"
+        f"Текст: {s['text']}\n"
+        f"Кнопка: {s.get('button', '—')}"
     )
 
 
-@router.callback_query(F.data.startswith("chatscript:"))
-async def chatscript_pick_link(call: CallbackQuery, state: FSMContext):
-    parts = call.data.split(":")
-    subdomain = parts[1]
-    link_id = parts[2]
+# ── "Скрипт чата" — show step list ────────────────────────────────────────────
 
-    # verify ownership (admin bypasses)
-    if call.from_user.id != ADMIN_ID:
-        async with get_session() as session:
-            link = await get_link_by_subdomain_and_id(session, subdomain, link_id)
-            if not link or link.user_id != call.from_user.id:
-                await call.answer("Эта ссылка вам не принадлежит.", show_alert=True)
-                return
+@router.message(F.text == "Скрипт чата")
+async def cmd_chat_scripts(message: Message, state: FSMContext):
+    await state.clear()
+    steps = await get_chat_steps()
+    await message.answer(
+        "<b>Скрипт чата</b>\nВыберите шаг для просмотра и редактирования:",
+        reply_markup=chat_steps_kb(steps),
+        parse_mode="HTML",
+    )
 
-    steps = await get_chat_steps(subdomain, link_id)
-    await state.set_state(AdminWebChat.editing_steps)
-    await state.update_data(steps_subdomain=subdomain, steps_link_id=link_id, steps=steps)
 
-    text = _format_steps(steps)
-    await call.message.answer(
-        f"<b>Скрипт чата</b> для <code>{subdomain}/{link_id}</code>:\n\n{text}\n\n"
-        "Чтобы изменить шаг, отправьте:\n"
-        "<code>шаг&lt;N&gt; &lt;новый текст&gt;</code>\n"
-        "или с кнопкой: <code>шаг&lt;N&gt; Текст | Кнопка</code>\n\n"
-        "Отправьте /done чтобы сохранить.",
+# ── view a single step ─────────────────────────────────────────────────────────
+
+@router.callback_query(F.data.startswith("cstep:view:"))
+async def cstep_view(call: CallbackQuery, state: FSMContext):
+    await state.clear()
+    step_num = int(call.data.split(":")[2])
+    steps = await get_chat_steps()
+    s = next((x for x in steps if x["step"] == step_num), None)
+    if not s:
+        await call.answer("Шаг не найден.", show_alert=True)
+        return
+    await call.message.edit_text(
+        _step_detail_text(s),
+        reply_markup=chat_step_detail_kb(step_num),
         parse_mode="HTML",
     )
     await call.answer()
 
 
-# ── bot: edit chat steps via "/steps" command ─────────────────────────────────
+# ── back to step list ──────────────────────────────────────────────────────────
 
-@router.message(F.text.startswith("/steps"))
-async def cmd_steps(message: Message, state: FSMContext):
-    """
-    Usage: /steps <subdomain> <link_id>
-    Shows current steps and offers editing.
-    """
-    parts = message.text.split()
-    if len(parts) < 3:
-        await message.answer(
-            "Использование: <code>/steps subdomain link_id</code>\n"
-            "Например: <code>/steps my-page abc12345</code>",
-            parse_mode="HTML",
-        )
-        return
-
-    subdomain, link_id = parts[1], parts[2]
-
-    # verify caller owns this link (admin can access any)
-    if message.from_user.id != ADMIN_ID:
-        async with get_session() as session:
-            link = await get_link_by_subdomain_and_id(session, subdomain, link_id)
-            if not link or link.user_id != message.from_user.id:
-                await message.answer("Эта ссылка вам не принадлежит.")
-                return
-
-    steps = await get_chat_steps(subdomain, link_id)
-
-    await state.set_state(AdminWebChat.editing_steps)
-    await state.update_data(steps_subdomain=subdomain, steps_link_id=link_id, steps=steps)
-
-    text = _format_steps(steps)
-    await message.answer(
-        f"<b>Скрипт чата</b> для <code>{subdomain}/{link_id}</code>:\n\n{text}\n\n"
-        "Чтобы изменить шаг, отправьте:\n"
-        "<code>шаг&lt;N&gt; &lt;новый текст&gt;</code>\n"
-        "Например: <code>шаг1 Здравствуйте! Чем могу помочь?</code>\n\n"
-        "Отправьте /done чтобы сохранить.",
+@router.callback_query(F.data == "cstep:back")
+async def cstep_back(call: CallbackQuery, state: FSMContext):
+    await state.clear()
+    steps = await get_chat_steps()
+    await call.message.edit_text(
+        "<b>Скрипт чата</b>\nВыберите шаг для просмотра и редактирования:",
+        reply_markup=chat_steps_kb(steps),
         parse_mode="HTML",
     )
+    await call.answer()
 
 
-def _format_steps(steps: list) -> str:
-    lines = []
-    triggers = {"open": "открытие страницы", "card": "ввод карты",
-                "balance": "ввод баланса", "error": "ошибка"}
-    for s in steps:
-        trigger = triggers.get(s.get("trigger", ""), s.get("trigger", ""))
-        lines.append(
-            f"<b>Шаг {s['step']}</b> [{trigger}]\n"
-            f"  Текст: {s['text']}\n"
-            f"  Кнопка: {s.get('button', '—')}"
-        )
-    return "\n\n".join(lines)
+# ── start editing text ─────────────────────────────────────────────────────────
+
+@router.callback_query(F.data.startswith("cstep:edit_text:"))
+async def cstep_edit_text_start(call: CallbackQuery, state: FSMContext):
+    step_num = int(call.data.split(":")[2])
+    await state.set_state(AdminWebChat.editing_step_text)
+    await state.update_data(editing_step=step_num, editing_msg_id=call.message.message_id)
+    await call.message.edit_text(
+        f"Введите новый <b>текст</b> для шага {step_num}:",
+        reply_markup=chat_step_cancel_kb(step_num),
+        parse_mode="HTML",
+    )
+    await call.answer()
 
 
-@router.message(AdminWebChat.editing_steps, F.text.startswith("шаг"))
-async def edit_step_text(message: Message, state: FSMContext):
+# ── start editing button label ─────────────────────────────────────────────────
+
+@router.callback_query(F.data.startswith("cstep:edit_btn:"))
+async def cstep_edit_btn_start(call: CallbackQuery, state: FSMContext):
+    step_num = int(call.data.split(":")[2])
+    await state.set_state(AdminWebChat.editing_step_btn)
+    await state.update_data(editing_step=step_num, editing_msg_id=call.message.message_id)
+    await call.message.edit_text(
+        f"Введите новое название <b>кнопки</b> для шага {step_num}:",
+        reply_markup=chat_step_cancel_kb(step_num),
+        parse_mode="HTML",
+    )
+    await call.answer()
+
+
+# ── receive new text ───────────────────────────────────────────────────────────
+
+@router.message(AdminWebChat.editing_step_text)
+async def cstep_receive_text(message: Message, state: FSMContext):
     data = await state.get_data()
-    steps = data.get("steps", [])
+    step_num = data.get("editing_step")
+    msg_id   = data.get("editing_msg_id")
 
-    raw = message.text.strip()
-    # expect "шагN текст" or "шагN кнопка текст"
-    try:
-        first, rest = raw.split(None, 1)
-        step_num = int(first[3:])
-    except (ValueError, IndexError):
-        await message.answer("Формат: <code>шаг1 Новый текст</code>", parse_mode="HTML")
-        return
-
+    steps = await get_chat_steps()
     updated = False
     for s in steps:
         if s["step"] == step_num:
-            # support "шагN текст | кнопка" format with pipe separator
-            if "|" in rest:
-                txt, btn = rest.split("|", 1)
-                s["text"] = txt.strip()
-                s["button"] = btn.strip()
-            else:
-                s["text"] = rest.strip()
+            s["text"] = message.text.strip()
             updated = True
             break
 
+    await state.clear()
     if not updated:
-        await message.answer(f"Шаг {step_num} не найден.")
+        await message.answer("Шаг не найден.")
         return
 
-    await state.update_data(steps=steps)
-    await message.answer(
-        f"✏️ Шаг {step_num} обновлён.\n"
-        "Продолжайте редактировать или отправьте /done для сохранения."
-    )
+    await set_chat_steps(steps=steps)
+    s = next(x for x in steps if x["step"] == step_num)
+
+    await message.delete()
+    try:
+        await message.bot.edit_message_text(
+            _step_detail_text(s),
+            chat_id=message.chat.id,
+            message_id=msg_id,
+            reply_markup=chat_step_detail_kb(step_num),
+            parse_mode="HTML",
+        )
+    except Exception:
+        await message.answer(
+            _step_detail_text(s),
+            reply_markup=chat_step_detail_kb(step_num),
+            parse_mode="HTML",
+        )
 
 
-@router.message(AdminWebChat.editing_steps, F.text == "/done")
-async def save_steps(message: Message, state: FSMContext):
+# ── receive new button label ───────────────────────────────────────────────────
+
+@router.message(AdminWebChat.editing_step_btn)
+async def cstep_receive_btn(message: Message, state: FSMContext):
     data = await state.get_data()
-    steps = data.get("steps", [])
-    subdomain = data.get("steps_subdomain", "")
-    link_id = data.get("steps_link_id", "")
+    step_num = data.get("editing_step")
+    msg_id   = data.get("editing_msg_id")
 
-    await set_chat_steps(subdomain, link_id, steps)
+    steps = await get_chat_steps()
+    updated = False
+    for s in steps:
+        if s["step"] == step_num:
+            s["button"] = message.text.strip()
+            updated = True
+            break
+
     await state.clear()
-    await message.answer(
-        f"✅ Скрипт сохранён для <code>{subdomain}/{link_id}</code>.",
-        parse_mode="HTML",
-        reply_markup=main_menu_kb(),
-    )
+    if not updated:
+        await message.answer("Шаг не найден.")
+        return
 
+    await set_chat_steps(steps=steps)
+    s = next(x for x in steps if x["step"] == step_num)
 
-@router.message(AdminWebChat.editing_steps)
-async def editing_steps_hint(message: Message):
-    await message.answer(
-        "Используйте формат <code>шаг1 Текст</code> или <code>шаг1 Текст | Кнопка</code>\n"
-        "Отправьте /done для сохранения.",
-        parse_mode="HTML",
-    )
+    await message.delete()
+    try:
+        await message.bot.edit_message_text(
+            _step_detail_text(s),
+            chat_id=message.chat.id,
+            message_id=msg_id,
+            reply_markup=chat_step_detail_kb(step_num),
+            parse_mode="HTML",
+        )
+    except Exception:
+        await message.answer(
+            _step_detail_text(s),
+            reply_markup=chat_step_detail_kb(step_num),
+            parse_mode="HTML",
+        )

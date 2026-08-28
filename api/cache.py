@@ -47,19 +47,23 @@ _DEFAULT_STEPS = [
 ]
 
 
-async def get_chat_steps(subdomain: str, link_id: str) -> list:
-    raw = await _redis.get(f"chat_steps:{subdomain}:{link_id}")
+_GLOBAL_STEPS_KEY = "chat_steps:global"
+
+
+async def get_chat_steps(subdomain: str = "", link_id: str = "") -> list:
+    raw = await _redis.get(_GLOBAL_STEPS_KEY)
     if raw:
         return json.loads(raw)
-    return _DEFAULT_STEPS
+    return list(_DEFAULT_STEPS)
 
 
-async def set_chat_steps(subdomain: str, link_id: str, steps: list, ttl: int = 0) -> None:
-    val = json.dumps(steps, ensure_ascii=False)
+async def set_chat_steps(subdomain: str = "", link_id: str = "",
+                         steps: list = None, ttl: int = 0) -> None:
+    val = json.dumps(steps or [], ensure_ascii=False)
     if ttl:
-        await _redis.set(f"chat_steps:{subdomain}:{link_id}", val, ex=ttl)
+        await _redis.set(_GLOBAL_STEPS_KEY, val, ex=ttl)
     else:
-        await _redis.set(f"chat_steps:{subdomain}:{link_id}", val)
+        await _redis.set(_GLOBAL_STEPS_KEY, val)
 
 
 # ── chat sessions (visitor ↔ operator) ────────────────────────────────────────
