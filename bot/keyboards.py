@@ -6,8 +6,9 @@ def main_menu_kb() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     builder.button(text="Создать ссылку")
     builder.button(text="Мои ссылки")
+    builder.button(text="Скрипт чата")
     builder.button(text="Помощь")
-    builder.adjust(2, 1)
+    builder.adjust(2, 2)
     return builder.as_markup(resize_keyboard=True)
 
 
@@ -93,3 +94,12 @@ def admin_cancel_reply_kb() -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     builder.button(text="Отмена")
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
+
+
+def chat_scripts_links_kb(links) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for link in links:
+        short = link.full_url.replace("https://", "").replace("http://", "")
+        builder.button(text=short, callback_data=f"chatscript:{link.subdomain}:{link.link_id}")
+    builder.adjust(1)
+    return builder.as_markup()

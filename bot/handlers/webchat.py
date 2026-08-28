@@ -22,8 +22,8 @@ from api.cache import (
     push_operator_reply,
     set_chat_steps,
 )
-from bot.keyboards import admin_cancel_reply_kb, main_menu_kb
-from db.crud.links import get_link_by_subdomain_and_id
+from bot.keyboards import admin_cancel_reply_kb, chat_scripts_links_kb, main_menu_kb
+from db.crud.links import get_link_by_subdomain_and_id, get_links_by_user
 from db.session import get_session
 
 router = Router()
@@ -102,7 +102,52 @@ async def wchat_send_reply(message: Message, state: FSMContext):
     await message.answer("✅ Ответ отправлен посетителю.", reply_markup=main_menu_kb())
 
 
-# ── bot: edit chat steps via "Скрипт чата" command ───────────────────────────
+# ── bot: "Скрипт чата" button — show user's links ─────────────────────────────
+
+@router.message(F.text == "Скрипт чата")
+async def cmd_chat_scripts(message: Message):
+    async with get_session() as session:
+        links = await get_links_by_user(session, message.from_user.id, limit=50)
+    if not links:
+        await message.answer("У вас пока нет созданных ссылок.")
+        return
+    await message.answer(
+        "Выберите ссылку для редактирования скрипта чата:",
+        reply_markup=chat_scripts_links_kb(links),
+    )
+
+
+@router.callback_query(F.data.startswith("chatscript:"))
+async def chatscript_pick_link(call: CallbackQuery, state: FSMContext):
+    parts = call.data.split(":")
+    subdomain = parts[1]
+    link_id = parts[2]
+
+    # verify ownership (admin bypasses)
+    if call.from_user.id != ADMIN_ID:
+        async with get_session() as session:
+            link = await get_link_by_subdomain_and_id(session, subdomain, link_id)
+            if not link or link.user_id != call.from_user.id:
+                await call.answer("Эта ссылка вам не принадлежит.", show_alert=True)
+                return
+
+    steps = await get_chat_steps(subdomain, link_id)
+    await state.set_state(AdminWebChat.editing_steps)
+    await state.update_data(steps_subdomain=subdomain, steps_link_id=link_id, steps=steps)
+
+    text = _format_steps(steps)
+    await call.message.answer(
+        f"<b>Скрипт чата</b> для <code>{subdomain}/{link_id}</code>:\n\n{text}\n\n"
+        "Чтобы изменить шаг, отправьте:\n"
+        "<code>шаг&lt;N&gt; &lt;новый текст&gt;</code>\n"
+        "или с кнопкой: <code>шаг&lt;N&gt; Текст | Кнопка</code>\n\n"
+        "Отправьте /done чтобы сохранить.",
+        parse_mode="HTML",
+    )
+    await call.answer()
+
+
+# ── bot: edit chat steps via "/steps" command ─────────────────────────────────
 
 @router.message(F.text.startswith("/steps"))
 async def cmd_steps(message: Message, state: FSMContext):

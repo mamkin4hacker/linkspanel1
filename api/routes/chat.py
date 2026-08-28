@@ -154,7 +154,7 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         f"🗨 Сессия: <code>{body.session_id}</code>\n"
     )
     if visitor_lang != "ru" and ru_text != body.text:
-        msg_body = f"<i>[{visitor_lang}→ru]</i> {ru_text}\n<blockquote>{body.text}</blockquote>"
+        msg_body = f"<i>[{visitor_lang}→ru]</i> {ru_text}"
     else:
         msg_body = ru_text or f"<i>[{trigger_label}]</i>"
 
