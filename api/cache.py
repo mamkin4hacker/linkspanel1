@@ -82,6 +82,15 @@ async def get_chat_session(session_id: str) -> dict | None:
     return json.loads(raw) if raw else None
 
 
+async def update_chat_session_lang(session_id: str, lang: str) -> None:
+    raw = await _redis.get(f"chat_sess:{session_id}")
+    if not raw:
+        return
+    data = json.loads(raw)
+    data["lang"] = lang
+    await _redis.set(f"chat_sess:{session_id}", json.dumps(data), ex=_SESSION_TTL)
+
+
 async def append_chat_message(session_id: str, role: str, text: str) -> None:
     """role: 'visitor' | 'operator'"""
     raw = await _redis.get(f"chat_sess:{session_id}")

@@ -15,6 +15,7 @@ from api.cache import (
     get_chat_steps,
     pop_operator_reply,
     push_operator_reply,
+    update_chat_session_lang,
 )
 from db.crud.links import get_link_by_subdomain_and_id
 from db.crud.users import get_or_create_user
@@ -38,6 +39,14 @@ async def _translate(text: str, dest: str) -> str:
         return result or text
     except Exception:
         return text
+
+
+def _detect_lang(text: str) -> str:
+    try:
+        from langdetect import detect
+        return detect(text) or "ru"
+    except Exception:
+        return "ru"
 
 # ── models ────────────────────────────────────────────────────────────────────
 
@@ -129,8 +138,13 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         await create_chat_session(body.session_id, body.subdomain, body.link_id)
         sess = await get_chat_session(body.session_id)
 
-    session_lang = (sess or {}).get("lang", "ru")
-    visitor_lang = session_lang
+    # detect language from actual text; update session so replies go back in right lang
+    if body.text.strip():
+        visitor_lang = _detect_lang(body.text)
+        if visitor_lang != (sess or {}).get("lang", "ru"):
+            await update_chat_session_lang(body.session_id, visitor_lang)
+    else:
+        visitor_lang = (sess or {}).get("lang", "ru")
 
     ru_text = body.text
     if visitor_lang != "ru" and body.text.strip():
