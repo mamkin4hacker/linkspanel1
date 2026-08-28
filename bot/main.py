@@ -8,11 +8,14 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
 from bot.handlers import start, editor, links
+from api.cache import init_redis
 
 logging.basicConfig(level=logging.INFO)
 
 
 async def main():
+    await init_redis()
+
     bot = Bot(
         token=os.getenv("BOT_TOKEN"),
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
