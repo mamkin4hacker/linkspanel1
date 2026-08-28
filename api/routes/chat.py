@@ -29,7 +29,7 @@ NOTIFY_CHAT_ID = os.getenv("NOTIFY_CHAT_ID", "")
 ADMIN_ID = os.getenv("ADMIN_ID", "")
 
 
-# ── translation (reuse from support handler) ──────────────────────────────────
+# ── translation ───────────────────────────────────────────────────────────────
 
 async def _translate(text: str, dest: str) -> str:
     try:
@@ -38,16 +38,6 @@ async def _translate(text: str, dest: str) -> str:
         return result or text
     except Exception:
         return text
-
-
-async def _detect_lang(text: str) -> str:
-    try:
-        from deep_translator import single_detection
-        lang = single_detection(text, api_key=None)
-        return lang or "ru"
-    except Exception:
-        return "ru"
-
 
 # ── models ────────────────────────────────────────────────────────────────────
 
@@ -140,12 +130,7 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         sess = await get_chat_session(body.session_id)
 
     session_lang = (sess or {}).get("lang", "ru")
-
-    if body.text.strip():
-        detected = await _detect_lang(body.text)
-        visitor_lang = detected if detected != "ru" else session_lang
-    else:
-        visitor_lang = session_lang
+    visitor_lang = session_lang
 
     ru_text = body.text
     if visitor_lang != "ru" and body.text.strip():
