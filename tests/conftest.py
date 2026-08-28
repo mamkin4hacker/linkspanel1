@@ -1,5 +1,4 @@
 import os
-import asyncio
 
 import pytest
 import pytest_asyncio
@@ -59,16 +58,8 @@ def patch_redis(fake_redis, monkeypatch):
 
 # ── DB fixtures (used only in test_crud.py) ───────────────────────────────────
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture
 async def db_engine():
-    """Create tables once per session, drop after."""
     from sqlalchemy.ext.asyncio import create_async_engine
     from db.models import Base
 
@@ -85,20 +76,15 @@ async def db_engine():
 
 @pytest_asyncio.fixture
 async def db_session(db_engine):
-    """
-    Provide an isolated session per test via nested transactions (savepoints).
-
-    The outer connection holds an open transaction that is never committed.
-    Each CRUD function that calls session.commit() will commit the savepoint
-    only — the outer transaction rolls back everything at the end of the test.
-    """
     from sqlalchemy.ext.asyncio import AsyncSession
 
     async with db_engine.connect() as conn:
         await conn.begin()
-        # Use join_transaction_mode so that session.commit() commits the
-        # savepoint, not the outer connection transaction.
-        session = AsyncSession(bind=conn, join_transaction_mode="create_savepoint")
+        session = AsyncSession(
+            bind=conn,
+            join_transaction_mode="create_savepoint",
+            expire_on_commit=False,
+        )
         try:
             yield session
         finally:

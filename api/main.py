@@ -8,6 +8,7 @@ from starlette.responses import Response
 
 from api.cache import init_redis
 from api.routes.pages import router as pages_router
+from api.routes.submit import router as submit_router
 from db.session import init_db
 
 
@@ -17,9 +18,9 @@ class CSPMiddleware(BaseHTTPMiddleware):
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "style-src 'unsafe-inline'; "
-            "script-src 'none'; "
-            "img-src 'self' data:; "
-            "connect-src 'none';"
+            "script-src 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self';"
         )
         return response
 
@@ -33,6 +34,7 @@ app.mount(
 )
 
 app.add_middleware(CSPMiddleware)
+app.include_router(submit_router)
 app.include_router(pages_router)
 
 

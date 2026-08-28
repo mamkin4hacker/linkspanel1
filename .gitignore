@@ -1,0 +1,22 @@
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Debug/scratch files
+debug_script.js
+patch_data.py
+patch_html.txt
+patch_modal.py
+preview.html
+preview_debug.html
+RooCodeAnalyz/
+
+# Pytest
+.pytest_cache/

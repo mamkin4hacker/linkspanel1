@@ -28,12 +28,12 @@ pytestmark = pytest.mark.asyncio
 
 async def _make_user(session, uid=None):
     uid = uid or (abs(hash(str(uuid.uuid4()))) % 10**9)
-    return await get_or_create_user(session, uid, f"user_{uid}")
+    return await get_or_create_user(session, uid, f"user_{uid}", autocommit=False)
 
 
 async def _make_domain(session, name=None):
     name = name or f"{uuid.uuid4().hex[:8]}.test"
-    return await create_domain(session, name)
+    return await create_domain(session, name, autocommit=False)
 
 
 async def _make_template(session, user_id):
@@ -70,8 +70,8 @@ class TestUsers:
         assert user2.id == 222222
 
     async def test_username_updated(self, db_session):
-        await get_or_create_user(db_session, 333333, "old_name")
-        user = await get_or_create_user(db_session, 333333, "new_name")
+        await get_or_create_user(db_session, 333333, "old_name", autocommit=False)
+        user = await get_or_create_user(db_session, 333333, "new_name", autocommit=False)
         assert user.username == "new_name"
 
 
@@ -152,7 +152,7 @@ class TestTemplates:
         user = await _make_user(db_session)
         tpl = await create_template(db_session, user_id=user.id, title="Old", autocommit=False)
         await db_session.flush()
-        updated = await update_template(db_session, tpl.id, title="New", bg_color="#000000")
+        updated = await update_template(db_session, tpl.id, title="New", bg_color="#000000", autocommit=False)
         assert updated.title == "New"
         assert updated.bg_color == "#000000"
 

