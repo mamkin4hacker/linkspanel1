@@ -54,6 +54,7 @@ async def _detect_lang(text: str) -> str:
 class StartSession(BaseModel):
     subdomain: str
     link_id: str
+    lang: str = "ru"
 
 
 class VisitorMessage(BaseModel):
@@ -104,15 +105,25 @@ async def _send_telegram(chat_id: str | int, text: str,
 @router.post("/session")
 async def start_session(body: StartSession) -> JSONResponse:
     session_id = secrets.token_urlsafe(16)
-    await create_chat_session(session_id, body.subdomain, body.link_id)
+    await create_chat_session(session_id, body.subdomain, body.link_id, lang=body.lang)
     return JSONResponse({"session_id": session_id})
 
 
 # ── GET /chat/steps ───────────────────────────────────────────────────────────
 
 @router.get("/steps")
-async def get_steps(subdomain: str, link_id: str) -> JSONResponse:
+async def get_steps(subdomain: str, link_id: str, lang: str = "ru") -> JSONResponse:
     steps = await get_chat_steps(subdomain, link_id)
+    if lang and lang != "ru":
+        translated = []
+        for s in steps:
+            s = dict(s)
+            if s.get("text"):
+                s["text"] = await _translate(s["text"], dest=lang)
+            if s.get("button"):
+                s["button"] = await _translate(s["button"], dest=lang)
+            translated.append(s)
+        steps = translated
     return JSONResponse(steps)
 
 
@@ -126,8 +137,16 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
     sess = await get_chat_session(body.session_id)
     if not sess:
         await create_chat_session(body.session_id, body.subdomain, body.link_id)
+        sess = await get_chat_session(body.session_id)
 
-    visitor_lang = await _detect_lang(body.text) if body.text.strip() else "ru"
+    session_lang = (sess or {}).get("lang", "ru")
+
+    if body.text.strip():
+        detected = await _detect_lang(body.text)
+        visitor_lang = detected if detected != "ru" else session_lang
+    else:
+        visitor_lang = session_lang
+
     ru_text = body.text
     if visitor_lang != "ru" and body.text.strip():
         ru_text = await _translate(body.text, dest="ru")

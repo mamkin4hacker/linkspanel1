@@ -469,14 +469,14 @@ customElements.define('support-widget', class extends HTMLElement {
       var r = await fetch('/chat/session',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({subdomain:SUBDOMAIN, link_id:LINK_ID})
+        body: JSON.stringify({subdomain:SUBDOMAIN, link_id:LINK_ID, lang:LANG})
       });
       var d = await r.json();
       this._sessionId = d.session_id;
     } catch(e){ return; }
 
     try {
-      var r2 = await fetch('/chat/steps?subdomain='+SUBDOMAIN+'&link_id='+LINK_ID);
+      var r2 = await fetch('/chat/steps?subdomain='+SUBDOMAIN+'&link_id='+LINK_ID+'&lang='+LANG);
       this._steps = await r2.json();
     } catch(e){ this._steps = []; }
 

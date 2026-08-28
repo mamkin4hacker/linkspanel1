@@ -71,8 +71,9 @@ async def set_chat_steps(subdomain: str = "", link_id: str = "",
 _SESSION_TTL = 3600  # 1 hour
 
 
-async def create_chat_session(session_id: str, subdomain: str, link_id: str) -> None:
-    data = {"subdomain": subdomain, "link_id": link_id, "msgs": []}
+async def create_chat_session(session_id: str, subdomain: str, link_id: str,
+                             lang: str = "ru") -> None:
+    data = {"subdomain": subdomain, "link_id": link_id, "lang": lang, "msgs": []}
     await _redis.set(f"chat_sess:{session_id}", json.dumps(data), ex=_SESSION_TTL)
 
 
