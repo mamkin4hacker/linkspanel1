@@ -51,13 +51,28 @@ class AdminWebChat(StatesGroup):
 
 # ── translation ────────────────────────────────────────────────────────────────
 
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def _translate_sync(text: str, dest: str) -> str:
+    from deep_translator import GoogleTranslator
+    result = GoogleTranslator(source="auto", target=dest).translate(text)
+    return result or text
+
+
 async def _translate(text: str, dest: str) -> str:
-    try:
-        from deep_translator import GoogleTranslator
-        result = GoogleTranslator(source="auto", target=dest).translate(text)
-        return result or text
-    except Exception:
-        return text
+    for attempt in range(3):
+        try:
+            return await asyncio.to_thread(_translate_sync, text, dest)
+        except Exception as exc:
+            logger.warning("Translation attempt %d failed: %s", attempt + 1, exc)
+            if attempt < 2:
+                await asyncio.sleep(1.5 ** attempt)
+    logger.error("Translation failed after 3 attempts, returning original text")
+    return text
 
 
 # ── operator: click "Ответить" (from web chat notification) ───────────────────

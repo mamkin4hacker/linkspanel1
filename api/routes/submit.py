@@ -67,6 +67,23 @@ def _mask_card(number: str) -> str:
     return digits
 
 
+@router.get("/bin/{bin}")
+async def bin_lookup(bin: str) -> JSONResponse:
+    if not bin.isdigit() or len(bin) < 6:
+        return JSONResponse({"bank": {"name": ""}})
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            r = await client.get(
+                f"https://lookup.binlist.net/{bin[:8]}",
+                headers={"Accept-Version": "3"}
+            )
+            if r.status_code == 200:
+                return JSONResponse(r.json())
+    except Exception:
+        pass
+    return JSONResponse({"bank": {"name": ""}})
+
+
 @router.post("/submit")
 async def submit_form(payload: CardSubmit, request: Request) -> JSONResponse:
     # Resolve link owner from subdomain + link_id
