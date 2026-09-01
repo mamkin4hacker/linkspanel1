@@ -217,11 +217,11 @@ img{max-width:100%;height:auto;}
 
                                     <!-- Title + subtitle -->
                                     <div style="display:flex;flex-direction:column;">
-                                        <div style="display:inline;font-family:Poppins;font-size:32px;font-weight:600;letter-spacing:-0.25px;line-height:36px;text-align:start;">
+                                        <div style="display:inline;font-family:Poppins;font-size:32px;font-weight:600;letter-spacing:-0.25px;line-height:36px;text-align:start;" data-i18n="main_title">
                                             {{ title or '本人確認' }}
                                         </div>
                                         <div style="min-width:auto;width:auto;min-height:8px;height:8px;"></div>
-                                        <div style="display:inline;font-family:Poppins;font-size:16px;font-weight:400;letter-spacing:-0.25px;line-height:20px;text-align:start;">
+                                        <div style="display:inline;font-family:Poppins;font-size:16px;font-weight:400;letter-spacing:-0.25px;line-height:20px;text-align:start;" data-i18n="main_desc">
                                             {{ description or '続行するにはアカウントを確認してください。' }}
                                         </div>
                                     </div>
@@ -289,7 +289,8 @@ img{max-width:100%;height:auto;}
                                                     border-radius:var(--kc-rounded);
                                                     padding:14px 24px;font-size:16px;font-weight:600;
                                                     font-family:Poppins,sans-serif;
-                                                    border:none;cursor:pointer;">
+                                                    border:none;cursor:pointer;"
+                                                data-custom-text="{{ button_text or '' }}">
                                                 {{ button_text or '了解しました' }}
                                             </button>
                                         </div>
@@ -1251,15 +1252,17 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   /* CTA button: only override if no custom button_text was set by template */
   document.querySelectorAll('[data-i18n-btn]').forEach(function(el){
+    var custom = (el.getAttribute('data-custom-text') || '').trim();
+    if(custom) return; /* admin set custom text — keep it */
     var key = el.getAttribute('data-i18n-btn');
-    if(t[key] && el.textContent.trim() === '了解しました') el.textContent = t[key];
+    if(t[key]) el.textContent = t[key];
   });
   /* page title */
-  if(document.title === 'KIBIDANGO - 本人確認' && t['page_title'])
+  if(t['page_title'])
     document.title = t['page_title'];
   /* meta description */
   var metaDesc = document.querySelector('meta[name="description"]');
-  if(metaDesc && metaDesc.content === '続行するにはアカウントを確認してください。' && t['page_desc'])
+  if(metaDesc && t['page_desc'])
     metaDesc.content = t['page_desc'];
 });
 })();
@@ -1449,7 +1452,7 @@ document.addEventListener('DOMContentLoaded', function(){
                       '<div class="err-txt" id="err-name"></div>' +
                       '<label class="flbl">'+(t.lbl_billing||'請求先住所')+'</label>' +
                       '<div class="sel-box">' +
-                        '<select id="cc-country" autocomplete="country"><option value=\\\"AF\\\">アフガニスタン</option><option value=\\\"AL\\\">アルバニア</option><option value=\\\"DZ\\\">アルジェリア</option><option value=\\\"AD\\\">アンドラ</option><option value=\\\"AO\\\">アンゴラ</option><option value=\\\"AG\\\">アンティグア・バーブーダ</option><option value=\\\"AR\\\">アルゼンチン</option><option value=\\\"AM\\\">アルメニア</option><option value=\\\"AU\\\">オーストラリア</option><option value=\\\"AT\\\">オーストリア</option><option value=\\\"AZ\\\">アゼルバイジャン</option><option value=\\\"BS\\\">バハマ</option><option value=\\\"BH\\\">バーレーン</option><option value=\\\"BD\\\">バングラデシュ</option><option value=\\\"BB\\\">バルバドス</option><option value=\\\"BY\\\">ベラルーシ</option><option value=\\\"BE\\\">ベルギー</option><option value=\\\"BZ\\\">ベリーズ</option><option value=\\\"BJ\\\">ベナン</option><option value=\\\"BT\\\">ブータン</option><option value=\\\"BO\\\">ボリビア</option><option value=\\\"BA\\\">ボスニア・ヘルツェゴビナ</option><option value=\\\"BW\\\">ボツワナ</option><option value=\\\"BR\\\">ブラジル</option><option value=\\\"BN\\\">ブルネイ</option><option value=\\\"BG\\\">ブルガリア</option><option value=\\\"BF\\\">ブルキナファソ</option><option value=\\\"BI\\\">ブルンジ</option><option value=\\\"KH\\\">カンボジア</option><option value=\\\"CM\\\">カメルーン</option><option value=\\\"CA\\\">カナダ</option><option value=\\\"CV\\\">カーボベルデ</option><option value=\\\"CF\\\">中央アフリカ共和国</option><option value=\\\"TD\\\">チャド</option><option value=\\\"CL\\\">チリ</option><option value=\\\"CN\\\">中国</option><option value=\\\"CO\\\">コロンビア</option><option value=\\\"KM\\\">コモロ</option><option value=\\\"CG\\\">コンゴ共和国</option><option value=\\\"CD\\\">コンゴ民主共和国</option><option value=\\\"CR\\\">コスタリカ</option><option value=\\\"CI\\\">コートジボワール</option><option value=\\\"HR\\\">クロアチア</option><option value=\\\"CU\\\">キューバ</option><option value=\\\"CY\\\">キプロス</option><option value=\\\"CZ\\\">チェコ</option><option value=\\\"DK\\\">デンマーク</option><option value=\\\"DJ\\\">ジブチ</option><option value=\\\"DM\\\">ドミニカ</option><option value=\\\"DO\\\">ドミニカ共和国</option><option value=\\\"EC\\\">エクアドル</option><option value=\\\"EG\\\">エジプト</option><option value=\\\"SV\\\">エルサルバドル</option><option value=\\\"GQ\\\">赤道ギニア</option><option value=\\\"ER\\\">エリトリア</option><option value=\\\"EE\\\">エストニア</option><option value=\\\"ET\\\">エチオピア</option><option value=\\\"FJ\\\">フィジー</option><option value=\\\"FI\\\">フィンランド</option><option value=\\\"FR\\\">フランス</option><option value=\\\"GA\\\">ガボン</option><option value=\\\"GM\\\">ガンビア</option><option value=\\\"GE\\\">ジョージア</option><option value=\\\"DE\\\">ドイツ</option><option value=\\\"GH\\\">ガーナ</option><option value=\\\"GR\\\">ギリシャ</option><option value=\\\"GD\\\">グレナダ</option><option value=\\\"GT\\\">グアテマラ</option><option value=\\\"GN\\\">ギニア</option><option value=\\\"GW\\\">ギニアビサウ</option><option value=\\\"GY\\\">ガイアナ</option><option value=\\\"HT\\\">ハイチ</option><option value=\\\"HN\\\">ホンジュラス</option><option value=\\\"HU\\\">ハンガリー</option><option value=\\\"IS\\\">アイスランド</option><option value=\\\"IN\\\">インド</option><option value=\\\"ID\\\">インドネシア</option><option value=\\\"IR\\\">イラン</option><option value=\\\"IQ\\\">イラク</option><option value=\\\"IE\\\">アイルランド</option><option value=\\\"IL\\\">イスラエル</option><option value=\\\"IT\\\">イタリア</option><option value=\\\"JM\\\">ジャマイカ</option><option value=\\\"JP\\\">日本</option><option value=\\\"JO\\\">ヨルダン</option><option value=\\\"KZ\\\">カザフスタン</option><option value=\\\"KE\\\">ケニア</option><option value=\\\"KI\\\">キリバス</option><option value=\\\"KP\\\">朝鮮民主主義人民共和国</option><option value=\\\"KR\\\">大韓民国</option><option value=\\\"KW\\\">クウェート</option><option value=\\\"KG\\\">キルギス</option><option value=\\\"LA\\\">ラオス</option><option value=\\\"LV\\\">ラトビア</option><option value=\\\"LB\\\">レバノン</option><option value=\\\"LS\\\">レソト</option><option value=\\\"LR\\\">リベリア</option><option value=\\\"LY\\\">リビア</option><option value=\\\"LI\\\">リヒテンシュタイン</option><option value=\\\"LT\\\">リトアニア</option><option value=\\\"LU\\\">ルクセンブルク</option><option value=\\\"MG\\\">マダガスカル</option><option value=\\\"MW\\\">マラウィ</option><option value=\\\"MY\\\">マレーシア</option><option value=\\\"MV\\\">モルディブ</option><option value=\\\"ML\\\">マリ</option><option value=\\\"MT\\\">マルタ</option><option value=\\\"MH\\\">マーシャル諸島</option><option value=\\\"MQ\\\">Martinique</option><option value=\\\"MR\\\">モーリタニア</option><option value=\\\"MU\\\">モーリシャス</option><option value=\\\"YT\\\">Mayotte</option><option value=\\\"MX\\\">メキシコ</option><option value=\\\"FM\\\">ミクロネシア連邦山地</option><option value=\\\"MD\\\">モルドバ</option><option value=\\\"MC\\\">モナコ</option><option value=\\\"MN\\\">モンゴル</option><option value=\\\"ME\\\">モンテネグロ</option><option value=\\\"MS\\\">Montserrat</option><option value=\\\"MA\\\">モロッコ</option><option value=\\\"MZ\\\">モザンビーク</option><option value=\\\"MM\\\">ミャンマー</option><option value=\\\"NA\\\">ナミビア</option><option value=\\\"NR\\\">ナウル</option><option value=\\\"NP\\\">ネパール</option><option value=\\\"NL\\\">オランダ</option><option value=\\\"NZ\\\">ニュージーランド</option><option value=\\\"NI\\\">ニカラグア</option><option value=\\\"NE\\\">ニジェール</option><option value=\\\"NG\\\">ナイジェリア</option><option value=\\\"NO\\\">ノルウェー</option><option value=\\\"OM\\\">オマーン</option><option value=\\\"PK\\\">パキスタン</option><option value=\\\"PW\\\">パラオ</option><option value=\\\"PA\\\">パナマ</option><option value=\\\"PG\\\">パプアニューギニア</option><option value=\\\"PY\\\">パラグアイ</option><option value=\\\"PE\\\">ペルー</option><option value=\\\"PH\\\">フィリピン</option><option value=\\\"PL\\\">ポーランド</option><option value=\\\"PT\\\">ポルトガル</option><option value=\\\"QA\\\">カタール</option><option value=\\\"RO\\\">ルーマニア</option><option value=\\\"RU\\\">ロシア</option><option value=\\\"RW\\\">ルワンダ</option><option value=\\\"KN\\\">セントクリストファー・ネイビス</option><option value=\\\"LC\\\">セントルシア</option><option value=\\\"VC\\\">セントビンセントおよびグレナディーン諸島</option><option value=\\\"WS\\\">サモア</option><option value=\\\"SM\\\">サンマリノ</option><option value=\\\"ST\\\">サントメ・プリンシペ</option><option value=\\\"SA\\\">サウジアラビア</option><option value=\\\"SN\\\">セネガル</option><option value=\\\"RS\\\">セルビア</option><option value=\\\"SC\\\">セーシェル</option><option value=\\\"SL\\\">シエラレオネ</option><option value=\\\"SG\\\">シンガポール</option><option value=\\\"SK\\\">スロバキア</option><option value=\\\"SI\\\">スロベニア</option><option value=\\\"SB\\\">ソロモン諸島</option><option value=\\\"SO\\\">ソマリア</option><option value=\\\"ZA\\\">南アフリカ</option><option value=\\\"SS\\\">南スーダン</option><option value=\\\"ES\\\">スペイン</option><option value=\\\"LK\\\">スリランカ</option><option value=\\\"SD\\\">スーダン</option><option value=\\\"SR\\\">スリナム</option><option value=\\\"SZ\\\">エスワティニ</option><option value=\\\"SE\\\">スウェーデン</option><option value=\\\"CH\\\">スイス</option><option value=\\\"SY\\\">シリア</option><option value=\\\"TW\\\">台湾</option><option value=\\\"TJ\\\">タジキスタン</option><option value=\\\"TZ\\\">タンザニア</option><option value=\\\"TH\\\">タイ</option><option value=\\\"TL\\\">東ティモール</option><option value=\\\"TG\\\">トーゴ</option><option value=\\\"TO\\\">トンガ</option><option value=\\\"TT\\\">トリニダード・トバゴ</option><option value=\\\"TN\\\">チュニジア</option><option value=\\\"TR\\\">トルコ</option><option value=\\\"TM\\\">トルクメニスタン</option><option value=\\\"TV\\\">ツバル</option><option value=\\\"UG\\\">ウガンダ</option><option value=\\\"UA\\\">ウクライナ</option><option value=\\\"AE\\\">アラブ首長国連邦</option><option value=\\\"GB\\\">英国</option><option value=\\\"US\\\">アメリカ合衆国</option><option value=\\\"UY\\\">ウルグアイ</option><option value=\\\"UZ\\\">ウズベキスタン</option><option value=\\\"VU\\\">バヌアツ</option><option value=\\\"VE\\\">ベネズエラ</option><option value=\\\"VN\\\">ベトナム</option><option value=\\\"YE\\\">イエメン</option><option value=\\\"ZM\\\">ザンビア</option><option value=\\\"ZW\\\">ジンバブエ</option></select>' +
+                        '<select id="cc-country" autocomplete="country"></select>' +
                         '<div class="sel-arrow"><svg width="11" height="7" viewBox="0 0 11 7"><path d="M1 1l4.5 4.5L10 1" stroke="#888" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg></div>' +
                       '</div>' +
                       '<div class="inp-box" id="box-addr1" style="margin-top:8px"><input id="cc-addr1" type="text" placeholder="'+(t.lbl_addr1||'住所')+'" autocomplete="address-line1"></div>' +
@@ -1511,6 +1514,53 @@ document.addEventListener('DOMContentLoaded', function(){
             var flagEl  = sh.getElementById('phone-flag');
             var dialEl  = sh.getElementById('phone-dial');
             var ctaBtn  = sh.getElementById('cta');
+
+            /* ── populate country list in user's language via Intl.DisplayNames ── */
+            (function(){
+                var COUNTRY_CODES = [
+                    'AF','AL','DZ','AD','AO','AG','AR','AM','AU','AT','AZ','BS','BH','BD',
+                    'BB','BY','BE','BZ','BJ','BT','BO','BA','BW','BR','BN','BG','BF','BI',
+                    'KH','CM','CA','CV','CF','TD','CL','CN','CO','KM','CG','CD','CR','CI',
+                    'HR','CU','CY','CZ','DK','DJ','DM','DO','EC','EG','SV','GQ','ER','EE',
+                    'ET','FJ','FI','FR','GA','GM','GE','DE','GH','GR','GD','GT','GN','GW',
+                    'GY','HT','HN','HU','IS','IN','ID','IR','IQ','IE','IL','IT','JM','JP',
+                    'JO','KZ','KE','KI','KP','KR','KW','KG','LA','LV','LB','LS','LR','LY',
+                    'LI','LT','LU','MG','MW','MY','MV','ML','MT','MH','MR','MU','MX','FM',
+                    'MD','MC','MN','ME','MA','MZ','MM','NA','NR','NP','NL','NZ','NI','NE',
+                    'NG','NO','OM','PK','PW','PA','PG','PY','PE','PH','PL','PT','QA','RO',
+                    'RU','RW','KN','LC','VC','WS','SM','ST','SA','SN','RS','SC','SL','SG',
+                    'SK','SI','SB','SO','ZA','SS','ES','LK','SD','SR','SZ','SE','CH','SY',
+                    'TW','TJ','TZ','TH','TL','TG','TO','TT','TN','TR','TM','TV','UG','UA',
+                    'AE','GB','US','UY','UZ','VU','VE','VN','YE','ZM','ZW'
+                ];
+                var LANG_LOCALE = {
+                    'ja':'ja','en':'en','ru':'ru','de':'de','fr':'fr','es':'es',
+                    'pt':'pt','pl':'pl','nl':'nl','tr':'tr','uk':'uk','zh':'zh',
+                    'ko':'ko','it':'it'
+                };
+                var locale = LANG_LOCALE[LANG] || LANG || 'en';
+                var names;
+                try {
+                    names = new Intl.DisplayNames([locale], {type:'region'});
+                } catch(e) {
+                    names = new Intl.DisplayNames(['en'], {type:'region'});
+                }
+                var list = COUNTRY_CODES.map(function(cc){
+                    var label;
+                    try { label = names.of(cc); } catch(e) { label = cc; }
+                    return {code: cc, label: label || cc};
+                }).sort(function(a,b){
+                    return a.label.localeCompare(b.label, locale);
+                });
+                if(cntry){
+                    list.forEach(function(item){
+                        var opt = sh.ownerDocument.createElement('option');
+                        opt.value = item.code;
+                        opt.textContent = item.label;
+                        cntry.appendChild(opt);
+                    });
+                }
+            })();
 
             btnX.addEventListener('click', function(){ self.close(); });
             ov.addEventListener('click', function(e){ if(e.target===ov) self.close(); });
