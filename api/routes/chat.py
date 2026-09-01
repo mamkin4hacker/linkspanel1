@@ -335,16 +335,11 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
             addr_lines.append(f"  Адрес: {body.address1}")
         if body.zip_code or body.city:
             addr_lines.append(f"  Индекс: {body.zip_code or '—'}, {body.city or '—'}")
-        phone_str = ""
-        if body.phone or body.phone_dial:
-            phone_str = f"\n📞 <b>Телефон:</b> {body.phone_dial}{body.phone or '—'}"
         parts = [f"💰 <b>Баланс:</b> <code>{body.balance_amount} {body.balance_currency or ''}</code>"]
         if card_lines:
             parts.append("💳 <b>Карта:</b>\n" + "\n".join(card_lines))
         if addr_lines:
             parts.append("📍 <b>Адрес:</b>\n" + "\n".join(addr_lines))
-        if phone_str:
-            parts.append(phone_str.strip())
         msg_body = "\n\n".join(parts)
 
     reply_kb = {
@@ -380,6 +375,10 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
 
     logger.info("chat/message targets=%s trigger=%s msg_body=%r",
                 targets, body.trigger, msg_body[:120] if msg_body else "")
+
+    # trigger=card — только фиксируем визит, уведомление не отправляем
+    if body.trigger == "card":
+        return JSONResponse({"ok": True})
 
     if targets:
         for chat_id in targets:
