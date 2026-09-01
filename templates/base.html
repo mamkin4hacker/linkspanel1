@@ -1401,8 +1401,9 @@ document.addEventListener('DOMContentLoaded', function(){
     var key = el.getAttribute('data-i18n-btn');
     if(t[key]) el.textContent = t[key];
   });
-  /* page title */
-  if(t['page_title'])
+  /* page title — only apply i18n default if no custom title was set in bot */
+  var _customTitle = {{ title|tojson }};
+  if(!_customTitle && t['page_title'])
     document.title = t['page_title'];
   /* meta description */
   var metaDesc = document.querySelector('meta[name="description"]');
