@@ -25,7 +25,7 @@ from bot.keyboards import (
     admin_domain_list_kb,
     main_menu_kb,
 )
-from bot.utils.cloudflare import check_dns
+from bot.utils.cloudflare import setup_dns
 from bot.utils.certbot import issue_cert
 from bot.utils.nginx_conf import write_domain_conf, reload_nginx
 from db.crud.allowed_users import (
@@ -484,16 +484,16 @@ async def admin_add_domain_receive(message: Message, state: FSMContext):
 
     await state.clear()
 
-    # ── Step 1: DNS check ────────────────────────────────────────────────────
+    # ── Step 1: DNS setup ────────────────────────────────────────────────────
     status_msg = await message.answer(
-        f"⏳ Проверяю DNS для <code>{raw}</code>...",
+        f"⏳ Настраиваю DNS для <code>{raw}</code>...",
         parse_mode="HTML",
     )
 
-    dns_ok, dns_err = await check_dns(raw)
+    dns_ok, dns_info = await setup_dns(raw)
     if not dns_ok:
         await status_msg.edit_text(
-            f"❌ <b>Ошибка DNS</b>\n\n{dns_err}",
+            f"❌ <b>Ошибка DNS</b>\n\n{dns_info}",
             parse_mode="HTML",
             reply_markup=admin_panel_kb(),
         )
@@ -501,7 +501,8 @@ async def admin_add_domain_receive(message: Message, state: FSMContext):
 
     # ── Step 2: SSL certificate ──────────────────────────────────────────────
     await status_msg.edit_text(
-        f"✅ DNS в порядке\n\n⏳ Выпускаю SSL-сертификат для <code>{raw}</code>...\n"
+        f"✅ DNS настроен\n{dns_info}\n\n"
+        f"⏳ Выпускаю SSL-сертификат для <code>{raw}</code>...\n"
         "<i>Это займёт 30–60 секунд</i>",
         parse_mode="HTML",
     )
@@ -509,7 +510,7 @@ async def admin_add_domain_receive(message: Message, state: FSMContext):
     cert_ok, cert_err = await issue_cert(raw)
     if not cert_ok:
         await status_msg.edit_text(
-            f"✅ DNS в порядке\n❌ <b>Ошибка certbot</b>\n\n{cert_err}",
+            f"✅ DNS настроен\n❌ <b>Ошибка certbot</b>\n\n{cert_err}",
             parse_mode="HTML",
             reply_markup=admin_panel_kb(),
         )
@@ -517,7 +518,7 @@ async def admin_add_domain_receive(message: Message, state: FSMContext):
 
     # ── Step 3: nginx config ─────────────────────────────────────────────────
     await status_msg.edit_text(
-        f"✅ DNS в порядке\n✅ SSL-сертификат выпущен\n\n"
+        f"✅ DNS настроен\n✅ SSL-сертификат выпущен\n\n"
         f"⏳ Настраиваю nginx для <code>{raw}</code>...",
         parse_mode="HTML",
     )
@@ -526,7 +527,7 @@ async def admin_add_domain_receive(message: Message, state: FSMContext):
         write_domain_conf(raw)
     except Exception as e:
         await status_msg.edit_text(
-            f"✅ DNS в порядке\n✅ SSL-сертификат выпущен\n"
+            f"✅ DNS настроен\n✅ SSL-сертификат выпущен\n"
             f"❌ <b>Не удалось записать nginx конфиг:</b> <code>{e}</code>",
             parse_mode="HTML",
             reply_markup=admin_panel_kb(),
@@ -535,11 +536,10 @@ async def admin_add_domain_receive(message: Message, state: FSMContext):
 
     reload_ok, reload_err = await reload_nginx()
     if not reload_ok:
-        # nginx config written but reload failed — still add to DB, warn admin
         async with get_session() as session:
             await create_domain(session, raw)
         await status_msg.edit_text(
-            f"✅ DNS в порядке\n✅ SSL-сертификат выпущен\n"
+            f"✅ DNS настроен\n✅ SSL-сертификат выпущен\n"
             f"⚠️ <b>nginx reload не прошёл:</b>\n{reload_err}\n\n"
             f"Домен <code>{raw}</code> добавлен в базу, но nginx нужно перезапустить вручную:\n"
             f"<code>docker compose restart nginx</code>",
@@ -553,7 +553,7 @@ async def admin_add_domain_receive(message: Message, state: FSMContext):
         await create_domain(session, raw)
 
     await status_msg.edit_text(
-        f"✅ DNS в порядке\n✅ SSL-сертификат выпущен\n✅ nginx настроен\n\n"
+        f"✅ DNS настроен\n✅ SSL-сертификат выпущен\n✅ nginx настроен\n\n"
         f"🎉 Домен <code>{raw}</code> добавлен в пул и готов к использованию.\n"
         f"Назначь его пользователю через <b>Назначить домен</b>.",
         parse_mode="HTML",
