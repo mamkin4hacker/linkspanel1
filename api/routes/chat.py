@@ -11,11 +11,13 @@ from user_agents import parse as ua_parse
 
 from api.cache import (
     append_chat_message,
+    check_heartbeat,
     create_chat_session,
     get_chat_session,
     get_chat_steps,
     pop_operator_reply,
     push_operator_reply,
+    touch_heartbeat,
     update_chat_session_lang,
 )
 from db.crud.links import get_link_by_subdomain_and_id
@@ -291,7 +293,7 @@ async def chat_stream(session_id: str):
         yield f"data: connected\n\n"
         while True:
             try:
-                reply = await pop_operator_reply(session_id, timeout=25)
+                reply = await pop_operator_reply(session_id, timeout=15)
                 if reply is not None:
                     import json as _json
                     payload = _json.dumps({"text": reply}, ensure_ascii=False)
@@ -308,8 +310,10 @@ async def chat_stream(session_id: str):
         event_gen(),
         media_type="text/event-stream",
         headers={
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
+            "Transfer-Encoding": "chunked",
         },
     )
 
@@ -318,6 +322,23 @@ async def chat_stream(session_id: str):
 
 @router.get("/online/{session_id}")
 async def check_online(session_id: str) -> JSONResponse:
-    """Returns whether the visitor's session is still alive in Redis."""
+    """Returns whether the visitor is actively on the page (heartbeat-based)."""
     sess = await get_chat_session(session_id)
-    return JSONResponse({"online": sess is not None})
+    if sess is None:
+        # session expired entirely — definitely offline
+        return JSONResponse({"online": False})
+    alive = await check_heartbeat(session_id)
+    return JSONResponse({"online": alive})
+
+
+# ── POST /chat/heartbeat ───────────────────────────────────────────────────────
+
+class HeartbeatBody(BaseModel):
+    session_id: str
+
+
+@router.post("/heartbeat")
+async def heartbeat(body: HeartbeatBody) -> JSONResponse:
+    """Called by the visitor's browser every ~20s to signal they are on the page."""
+    await touch_heartbeat(body.session_id)
+    return JSONResponse({"ok": True})

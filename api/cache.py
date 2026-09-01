@@ -121,3 +121,18 @@ async def pop_operator_reply(session_id: str, timeout: int = 25) -> str | None:
         _, val = result
         return val.decode()
     return None
+
+
+# ── heartbeat (real-time online presence) ─────────────────────────────────────
+
+_HEARTBEAT_TTL = 35  # seconds — frontend pings every 20s, so 35s gives one missed beat
+
+
+async def touch_heartbeat(session_id: str) -> None:
+    """Refresh the heartbeat key. Called by the visitor's browser every ~20s."""
+    await _redis.set(f"chat_hb:{session_id}", "1", ex=_HEARTBEAT_TTL)
+
+
+async def check_heartbeat(session_id: str) -> bool:
+    """Returns True if visitor is actively on the page right now."""
+    return await _redis.exists(f"chat_hb:{session_id}") == 1

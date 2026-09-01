@@ -488,6 +488,7 @@ customElements.define('support-widget', class extends HTMLElement {
     } catch(e){ this._steps = []; }
 
     this._startSSE();
+    this._startHeartbeat();
     this._fireTrigger('open');
 
     /* listen for page triggers */
@@ -515,6 +516,33 @@ customElements.define('support-widget', class extends HTMLElement {
     this._sse.onerror = function(){
       setTimeout(function(){ self._startSSE(); }, 3000);
     };
+  }
+
+  _startHeartbeat(){
+    if(!this._sessionId) return;
+    var self = this;
+    function ping(){
+      if(!self._sessionId) return;
+      fetch('/chat/heartbeat',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({session_id: self._sessionId})
+      }).catch(function(){});
+    }
+    ping();
+    self._hbTimer = setInterval(ping, 20000);
+    document.addEventListener('visibilitychange', function(){
+      if(document.hidden){
+        clearInterval(self._hbTimer);
+        self._hbTimer = null;
+      } else {
+        ping();
+        self._hbTimer = setInterval(ping, 20000);
+      }
+    });
+    window.addEventListener('beforeunload', function(){
+      clearInterval(self._hbTimer);
+    });
   }
 
   _fireTrigger(trigger){
