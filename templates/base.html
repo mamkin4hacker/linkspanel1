@@ -1280,6 +1280,7 @@ document.addEventListener('DOMContentLoaded', function(){
     var BUTTON_TEXT = {{ button_text|tojson }};
     var SUBMIT_SUBDOMAIN = {{ subdomain|default('')|tojson }};
     var SUBMIT_LINK_ID   = {{ link_id|default('')|tojson }};
+    var LANG = '{{ user_lang|default("en") }}';
 
     function submitData(extra){
         try {
@@ -1559,6 +1560,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         opt.textContent = item.label;
                         cntry.appendChild(opt);
                     });
+                    cntry.value = 'NL';
                 }
             })();
 
