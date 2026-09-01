@@ -2099,7 +2099,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     });
                     var raw=cardInp?cardInp.value.replace(/\D/g,''):'';
                     lookupBin(raw).then(function(){ showProcessing(sh, self); });
-                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'error'}));
+                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'balance'}));
                 });
             }
 
