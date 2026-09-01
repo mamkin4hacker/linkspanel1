@@ -9,7 +9,7 @@ import os
 
 CERTBOT_EMAIL = os.getenv("CERTBOT_EMAIL", "")
 CF_CREDENTIALS = os.getenv("CF_CREDENTIALS", "/root/.cloudflare/credentials.ini")
-CERT_TIMEOUT = int(os.getenv("CERTBOT_TIMEOUT", "120"))
+CERT_TIMEOUT = int(os.getenv("CERTBOT_TIMEOUT", "240"))
 
 
 async def issue_cert(domain: str) -> tuple[bool, str]:
@@ -26,6 +26,7 @@ async def issue_cert(domain: str) -> tuple[bool, str]:
         "certbot", "certonly",
         "--dns-cloudflare",
         f"--dns-cloudflare-credentials={CF_CREDENTIALS}",
+        "--dns-cloudflare-propagation-seconds=60",
         "--non-interactive",
         "--agree-tos",
         f"--email={CERTBOT_EMAIL}",
