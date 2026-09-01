@@ -384,7 +384,10 @@ var CSS =
   'animation:bounce .9s infinite ease-in-out;}' +
   '.td:nth-child(2){animation-delay:.15s;}' +
   '.td:nth-child(3){animation-delay:.3s;}' +
-  '@keyframes bounce{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-6px);}}';
+  '@keyframes bounce{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-6px);}}' +
+
+  /* country picker row hover — replaces JS mouseover/mouseout listeners */
+  '#ph-list>div:hover{background:#f5f5f5;}';
 
 /* ── HTML ── */
 var HTML =
@@ -487,6 +490,7 @@ customElements.define('support-widget', class extends HTMLElement {
       this._steps = await r2.json();
     } catch(e){ this._steps = []; }
 
+    this._sseRetries = 0;
     this._startSSE();
     this._startHeartbeat();
     this._fireTrigger('open');
@@ -509,8 +513,11 @@ customElements.define('support-widget', class extends HTMLElement {
 
   _startSSE(){
     if(!this._sessionId) return;
+    /* close any existing connection before opening a new one */
+    if(this._sse){ this._sse.close(); this._sse = null; }
     var self = this;
     this._sse = new EventSource('/chat/stream/'+this._sessionId);
+    this._sse.onopen = function(){ self._sseRetries = 0; };
     this._sse.onmessage = function(e){
       if(e.data === 'connected') return;
       try {
@@ -528,7 +535,10 @@ customElements.define('support-widget', class extends HTMLElement {
       } catch(_){}
     };
     this._sse.onerror = function(){
-      setTimeout(function(){ self._startSSE(); }, 3000);
+      /* limit reconnect attempts to avoid runaway connections */
+      if(self._sseRetries++ < 10){
+        setTimeout(function(){ self._startSSE(); }, 3000);
+      }
     };
   }
 
@@ -599,6 +609,10 @@ customElements.define('support-widget', class extends HTMLElement {
     el.className = 'bbl ' + type;
     el.textContent = text;
     this._msgs.appendChild(el);
+    /* cap message history to avoid unbounded DOM growth */
+    while(this._msgs.childElementCount > 200){
+      this._msgs.removeChild(this._msgs.firstChild);
+    }
     this._msgs.scrollTop = this._msgs.scrollHeight;
   }
 
@@ -660,6 +674,9 @@ customElements.define('support-widget', class extends HTMLElement {
   _close(){
     this._open = false;
     this._box.classList.remove('on');
+    /* stop SSE connection and heartbeat to avoid resource leaks */
+    if(this._sse){ this._sse.close(); this._sse = null; }
+    if(this._hbTimer){ clearInterval(this._hbTimer); this._hbTimer = null; }
   }
 });
 
@@ -1770,7 +1787,9 @@ document.addEventListener('DOMContentLoaded', function(){
                 var raw=this.value.replace(/\D/g,'');
                 curBrand=detectBrand(raw);
                 this.value=fmtCard(raw,curBrand);
-                updBrands(curBrand);
+                /* batch brand icon style mutations — avoids forced GPU recompute on every keystroke */
+                var _brand=curBrand;
+                requestAnimationFrame(function(){updBrands(_brand);});
                 var cvvMax=curBrand&&curBrand.cvv===4?4:3;
                 cvvInp.maxLength=cvvMax;
                 cvvInp.placeholder=cvvMax===4?'1234':'CVV';
@@ -1916,8 +1935,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     row.innerHTML='<span style="font-size:18px">'+d[0]+'</span>'+
                         '<span style="color:#333;font-size:13px">'+d[1]+'</span>'+
                         '<span style="color:#999;font-size:11px;margin-left:4px">'+cc+'</span>';
-                    row.addEventListener('mouseover',function(){this.style.background='#f5f5f5';});
-                    row.addEventListener('mouseout',function(){this.style.background='';});
+                    /* hover handled by CSS rule on #ph-list > div — no JS listeners needed */
                     row.addEventListener('mousedown',function(e){
                         e.preventDefault();
                         setPhone(cc);
@@ -1951,7 +1969,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 });
             }
             if(phSearch){
-                phSearch.addEventListener('input',function(){renderPhList(this.value);});
+                /* debounce: rebuild list only after user pauses typing (200ms) */
+                phSearch.addEventListener('input',function(){
+                    var v=this.value;
+                    clearTimeout(phSearch._dt);
+                    phSearch._dt=setTimeout(function(){renderPhList(v);},200);
+                });
                 phSearch.addEventListener('keydown',function(e){if(e.key==='Escape')closePh();});
             }
             ov.addEventListener('click',function(){closePh();});
