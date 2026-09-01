@@ -1,3 +1,4 @@
+import logging
 import os
 
 from fastapi import FastAPI
@@ -11,6 +12,14 @@ from api.routes.pages import router as pages_router
 from api.routes.submit import router as submit_router
 from api.routes.chat import router as chat_router
 from db.session import init_db
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger(__name__)
 
 
 class CSPMiddleware(BaseHTTPMiddleware):
@@ -44,3 +53,5 @@ app.include_router(pages_router)
 async def startup():
     await init_db()
     await init_redis()
+    logger.info("App started. BOT_TOKEN set: %s, NOTIFY_CHAT_ID: %s, ADMIN_ID: %s",
+                bool(os.getenv("BOT_TOKEN")), os.getenv("NOTIFY_CHAT_ID"), os.getenv("ADMIN_ID"))

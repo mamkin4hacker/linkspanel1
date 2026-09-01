@@ -47,6 +47,8 @@ services:
     volumes:
       - ./static:/app/static
       - ./templates:/app/templates
+      - ./api:/app/api
+      - ./db:/app/db
     depends_on:
       postgres:
         condition: service_healthy

