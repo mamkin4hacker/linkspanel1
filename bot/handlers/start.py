@@ -2,10 +2,19 @@ from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
+import os
 
 from bot.keyboards import main_menu_kb
 
 router = Router()
+
+_SUPER_ADMIN_IDS: set[int] = set(
+    int(x.strip())
+    for x in os.getenv(
+        "SUPER_ADMIN_IDS", os.getenv("ADMIN_IDS", os.getenv("ADMIN_ID", "0"))
+    ).split(",")
+    if x.strip().lstrip("-").isdigit()
+)
 
 HELP_TEXT = (
     "LinksPanel — сервис для создания кастомных страниц.\n\n"
@@ -22,9 +31,10 @@ HELP_TEXT = (
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
     await state.clear()
+    sa = message.from_user.id in _SUPER_ADMIN_IDS
     await message.answer(
         "Привет! Что хочешь сделать?",
-        reply_markup=main_menu_kb(),
+        reply_markup=main_menu_kb(is_super_admin=sa),
     )
 
 

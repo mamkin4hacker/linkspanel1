@@ -80,3 +80,14 @@ class Visitor(Base):
     device: Mapped[str | None] = mapped_column(String(200))
     sys_lang: Mapped[str | None] = mapped_column(String(20))
     first_seen: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+
+
+class AllowedUser(Base):
+    """Users that have been granted access to the bot by a super-admin."""
+    __tablename__ = "allowed_users"
+
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    # optional display label set by the admin when granting access
+    note: Mapped[str | None] = mapped_column(String(200))
+    granted_by: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    granted_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)

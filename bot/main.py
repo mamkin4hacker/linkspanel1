@@ -7,7 +7,8 @@ from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-from bot.handlers import start, editor, links, webchat
+from bot.handlers import start, editor, links, webchat, admin
+from bot.middleware import AccessMiddleware
 from api.cache import init_redis
 
 logging.basicConfig(level=logging.INFO)
@@ -24,6 +25,10 @@ async def main():
     storage = RedisStorage.from_url(os.getenv("REDIS_URL", "redis://redis:6379"))
     dp = Dispatcher(storage=storage)
 
+    # access gate — runs before every handler
+    dp.update.outer_middleware(AccessMiddleware())
+
+    dp.include_router(admin.router)   # admin first so its /admin command is matched
     dp.include_router(start.router)
     dp.include_router(editor.router)
     dp.include_router(links.router)

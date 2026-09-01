@@ -2,13 +2,17 @@ from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardBut
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
 
-def main_menu_kb() -> ReplyKeyboardMarkup:
+def main_menu_kb(is_super_admin: bool = False) -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     builder.button(text="Создать ссылку")
     builder.button(text="Мои ссылки")
     builder.button(text="Скрипт чата")
     builder.button(text="Помощь")
-    builder.adjust(2, 2)
+    if is_super_admin:
+        builder.button(text="👑 Админ панель")
+        builder.adjust(2, 2, 1)
+    else:
+        builder.adjust(2, 2)
     return builder.as_markup(resize_keyboard=True)
 
 
@@ -136,3 +140,33 @@ def chat_step_cancel_kb(step_num: int) -> InlineKeyboardMarkup:
     builder.button(text="◀️ Отмена", callback_data=f"cstep:view:{step_num}")
     builder.adjust(1)
     return builder.as_markup()
+
+
+def admin_panel_kb() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="📋 Список пользователей", callback_data="admin:list")
+    builder.button(text="✅ Выдать доступ",         callback_data="admin:grant")
+    builder.button(text="❌ Отозвать доступ",        callback_data="admin:revoke")
+    builder.button(text="◀️ Главное меню",           callback_data="admin:back")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def admin_users_list_kb(users: list) -> InlineKeyboardMarkup:
+    """Shows each allowed user with a revoke button, plus back/grant buttons."""
+    builder = InlineKeyboardBuilder()
+    for u in users:
+        label = f"❌ {u.user_id}"
+        if u.note:
+            label += f" ({u.note[:30]})"
+        builder.button(text=label, callback_data=f"admin:revoke:{u.user_id}")
+    builder.button(text="✅ Выдать доступ", callback_data="admin:grant")
+    builder.button(text="◀️ Назад",         callback_data="admin:back_to_panel")
+    builder.adjust(*([1] * len(users)), 1, 1)
+    return builder.as_markup()
+
+
+def admin_cancel_kb() -> ReplyKeyboardMarkup:
+    builder = ReplyKeyboardBuilder()
+    builder.button(text="Отмена")
+    return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)

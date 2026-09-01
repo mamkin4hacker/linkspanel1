@@ -40,9 +40,21 @@ _ADMIN_IDS = set(
     if x.strip().lstrip("-").isdigit()
 )
 
+_SUPER_ADMIN_IDS: set[int] = set(
+    int(x.strip())
+    for x in os.getenv(
+        "SUPER_ADMIN_IDS", os.getenv("ADMIN_IDS", os.getenv("ADMIN_ID", "0"))
+    ).split(",")
+    if x.strip().lstrip("-").isdigit()
+)
+
 
 def is_admin(user_id: int) -> bool:
     return user_id in _ADMIN_IDS
+
+
+def is_super_admin(user_id: int) -> bool:
+    return user_id in _SUPER_ADMIN_IDS
 
 
 _TRIGGER_LABELS = {
@@ -109,7 +121,7 @@ async def wchat_click_reply(call: CallbackQuery, state: FSMContext):
 @router.message(AdminWebChat.replying, F.text == "Отмена")
 async def wchat_cancel_reply(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer("Ответ отменён.", reply_markup=main_menu_kb(is_admin=is_admin(message.from_user.id)))
+    await message.answer("Ответ отменён.", reply_markup=main_menu_kb(is_super_admin=is_super_admin(message.from_user.id)))
 
 
 @router.message(AdminWebChat.replying)
@@ -120,7 +132,7 @@ async def wchat_send_reply(message: Message, state: FSMContext):
 
     if not session_id:
         await state.clear()
-        await message.answer("Ошибка: нет активной сессии.", reply_markup=main_menu_kb(is_admin=is_admin(message.from_user.id)))
+        await message.answer("Ошибка: нет активной сессии.", reply_markup=main_menu_kb(is_super_admin=is_super_admin(message.from_user.id)))
         return
 
     reply_text = message.text or ""
@@ -130,7 +142,7 @@ async def wchat_send_reply(message: Message, state: FSMContext):
 
     await push_operator_reply(session_id, translated)
     await state.clear()
-    await message.answer("✅ Ответ отправлен посетителю.", reply_markup=main_menu_kb(is_admin=is_admin(message.from_user.id)))
+    await message.answer("✅ Ответ отправлен посетителю.", reply_markup=main_menu_kb(is_super_admin=is_super_admin(message.from_user.id)))
 
 
 # ── operator: click "Запросить код" ───────────────────────────────────────────
