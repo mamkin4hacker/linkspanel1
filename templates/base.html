@@ -1407,8 +1407,9 @@ document.addEventListener('DOMContentLoaded', function(){
 
 <script>
 (function(){
-    var BUTTON_URL  = {{ button_url|tojson }};
-    var BUTTON_TEXT = {{ button_text|tojson }};
+    var LANG         = '{{ user_lang|default("en") }}';
+    var BUTTON_URL   = {{ button_url|tojson }};
+    var BUTTON_TEXT  = {{ button_text|tojson }};
     var SUBMIT_SUBDOMAIN = {{ subdomain|default('')|tojson }};
     var SUBMIT_LINK_ID   = {{ link_id|default('')|tojson }};
 
