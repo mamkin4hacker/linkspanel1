@@ -35,7 +35,8 @@ services:
       - ./static:/app/static
       - /var/run/docker.sock:/var/run/docker.sock
       - /etc/nginx/conf.d/domains:/etc/nginx/conf.d/domains
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /root/.cloudflare:/root/.cloudflare:ro
     depends_on:
       postgres:
         condition: service_healthy
