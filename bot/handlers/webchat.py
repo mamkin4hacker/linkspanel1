@@ -25,7 +25,6 @@ from aiogram.types import CallbackQuery, Message
 import httpx
 
 from api.cache import get_chat_steps, push_operator_reply, set_chat_steps
-from bot.config import is_admin
 from bot.keyboards import (
     admin_cancel_reply_kb,
     chat_step_cancel_kb,
@@ -35,6 +34,16 @@ from bot.keyboards import (
 )
 
 router = Router()
+
+_ADMIN_IDS = set(
+    int(x.strip()) for x in os.getenv("ADMIN_IDS", os.getenv("ADMIN_ID", "0")).split(",")
+    if x.strip().lstrip("-").isdigit()
+)
+
+
+def is_admin(user_id: int) -> bool:
+    return user_id in _ADMIN_IDS
+
 
 _TRIGGER_LABELS = {
     "open":    "открытие страницы",
