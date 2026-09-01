@@ -5,7 +5,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from api.cache import invalidate
+from api.cache import invalidate, invalidate_page
 from bot.keyboards import (
     confirm_delete_kb,
     editor_menu_edit_kb,
@@ -187,7 +187,12 @@ async def save_edited_link(call: CallbackQuery, state: FSMContext):
         await update_template(session, uuid.UUID(template_id), **tpl_data)
 
     if cache_key:
-        await invalidate(cache_key)
+        # cache_key is "page:{subdomain}:{link_id}" — invalidate all lang variants
+        parts = cache_key.split(":")
+        if len(parts) == 3:
+            await invalidate_page(parts[1], parts[2])
+        else:
+            await invalidate(cache_key)
 
     await state.clear()
     await call.message.answer("💾 Изменения сохранены!")
@@ -233,13 +238,14 @@ async def do_delete_link(call: CallbackQuery, state: FSMContext):
         if not link:
             await call.answer("Ссылка не найдена.", show_alert=True)
             return
-        cache_key = f"page:{link.subdomain}:{link.link_id}"
+        cache_subdomain = link.subdomain
+        cache_link_id = link.link_id
         domain_id = link.domain_id
         await soft_delete_link(session, uuid.UUID(link_uuid), autocommit=False)
         await decrement_subdomain_count(session, domain_id)
         await session.commit()
 
-    await invalidate(cache_key)
+    await invalidate_page(cache_subdomain, cache_link_id)
     await state.clear()
     await call.message.answer("✅ Ссылка удалена.")
     await call.answer()

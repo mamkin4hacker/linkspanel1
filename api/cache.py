@@ -24,6 +24,18 @@ async def invalidate(key: str) -> None:
     await _redis.delete(key)
 
 
+_SUPPORTED_LANGS = {
+    "ru", "en", "de", "fr", "es", "it", "pt", "pl", "nl", "tr",
+    "ar", "zh", "ja", "ko", "uk", "cs", "sv", "fi", "no", "da",
+}
+
+
+async def invalidate_page(subdomain: str, link_id: str) -> None:
+    """Invalidate cached page HTML for all language variants."""
+    keys = [f"page:{subdomain}:{link_id}:{lang}" for lang in _SUPPORTED_LANGS]
+    await _redis.delete(*keys)
+
+
 async def get_preview_config(token: str) -> dict | None:
     user_id = await _redis.get(f"preview_token:{token}")
     if not user_id:
