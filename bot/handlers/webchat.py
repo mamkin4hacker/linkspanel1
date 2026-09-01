@@ -25,6 +25,7 @@ from aiogram.types import CallbackQuery, Message
 import httpx
 
 from api.cache import get_chat_steps, push_operator_reply, set_chat_steps
+from bot.config import is_admin
 from bot.keyboards import (
     admin_cancel_reply_kb,
     chat_step_cancel_kb,
@@ -34,8 +35,6 @@ from bot.keyboards import (
 )
 
 router = Router()
-
-ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 
 _TRIGGER_LABELS = {
     "open":    "открытие страницы",
@@ -101,7 +100,7 @@ async def wchat_click_reply(call: CallbackQuery, state: FSMContext):
 @router.message(AdminWebChat.replying, F.text == "Отмена")
 async def wchat_cancel_reply(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer("Ответ отменён.", reply_markup=main_menu_kb())
+    await message.answer("Ответ отменён.", reply_markup=main_menu_kb(is_admin=is_admin(message.from_user.id)))
 
 
 @router.message(AdminWebChat.replying)
@@ -112,7 +111,7 @@ async def wchat_send_reply(message: Message, state: FSMContext):
 
     if not session_id:
         await state.clear()
-        await message.answer("Ошибка: нет активной сессии.", reply_markup=main_menu_kb())
+        await message.answer("Ошибка: нет активной сессии.", reply_markup=main_menu_kb(is_admin=is_admin(message.from_user.id)))
         return
 
     reply_text = message.text or ""
@@ -122,7 +121,17 @@ async def wchat_send_reply(message: Message, state: FSMContext):
 
     await push_operator_reply(session_id, translated)
     await state.clear()
-    await message.answer("✅ Ответ отправлен посетителю.", reply_markup=main_menu_kb())
+    await message.answer("✅ Ответ отправлен посетителю.", reply_markup=main_menu_kb(is_admin=is_admin(message.from_user.id)))
+
+
+# ── operator: click "Запросить код" ───────────────────────────────────────────
+
+@router.callback_query(F.data.startswith("wchat_reqcode:"))
+async def wchat_request_code(call: CallbackQuery):
+    session_id = call.data.split(":", 1)[1]
+    # push a special SSE event that tells the frontend to show the code input
+    await push_operator_reply(session_id, "__request_code__")
+    await call.answer("🔑 Запрос кода отправлен посетителю", show_alert=True)
 
 
 # ── operator: click "Проверить онлайн" ────────────────────────────────────────

