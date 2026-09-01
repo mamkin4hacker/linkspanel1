@@ -147,7 +147,19 @@ def admin_panel_kb() -> InlineKeyboardMarkup:
     builder.button(text="📋 Список пользователей", callback_data="admin:list")
     builder.button(text="✅ Выдать доступ",         callback_data="admin:grant")
     builder.button(text="❌ Отозвать доступ",        callback_data="admin:revoke")
+    builder.button(text="🌐 Назначить домен",        callback_data="admin:assign_domain")
+    builder.button(text="➕ Добавить домен",         callback_data="admin:add_domain")
     builder.button(text="◀️ Главное меню",           callback_data="admin:back")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def admin_domain_list_kb(domains: list) -> InlineKeyboardMarkup:
+    """Inline list of unassigned domains for the admin to pick from."""
+    builder = InlineKeyboardBuilder()
+    for d in domains:
+        builder.button(text=d.domain, callback_data=f"admin:domain_pick:{d.id}")
+    builder.button(text="◀️ Отмена", callback_data="admin:back_to_panel")
     builder.adjust(1)
     return builder.as_markup()
 

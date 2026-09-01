@@ -16,7 +16,7 @@ from bot.utils.validators import (
     validate_subdomain,
     validate_url,
 )
-from db.crud.domains import get_least_loaded_domain, increment_subdomain_count
+from db.crud.domains import get_user_domain, increment_subdomain_count
 from db.crud.links import create_link
 from db.crud.templates import create_template
 from db.crud.users import get_or_create_user
@@ -63,9 +63,16 @@ def _editor_text(data: dict) -> str:
 
 @router.message(F.text == "Создать ссылку")
 async def start_create(message: Message, state: FSMContext):
+    async with get_session() as session:
+        domain = await get_user_domain(session, message.from_user.id)
+    if domain is None:
+        await message.answer("У вас нет назначенного домена. Обратитесь к администратору.")
+        return
     await state.clear()
+    await state.update_data(domain_id=str(domain.id), domain_name=domain.domain)
     await state.set_state(CreateLink.waiting_subdomain)
     await message.answer(
+        f"Ваш домен: <code>{domain.domain}</code>\n\n"
         "Введи название поддомена.\n"
         "Только латиница, цифры и дефис. Например: <code>my-page</code>",
         parse_mode="HTML",
@@ -322,12 +329,26 @@ async def confirm_create(call: CallbackQuery, state: FSMContext):
     tpl_data = data.get("template", _default_template())
     user_id = call.from_user.id
     username = call.from_user.username
+    domain_id_str = data.get("domain_id")
+
+    if not domain_id_str:
+        await call.message.answer("Ошибка сессии. Начните создание ссылки заново.")
+        await state.clear()
+        await call.answer()
+        return
+
+    stored_domain_id = uuid.UUID(domain_id_str)
 
     async with get_session() as session:
         await get_or_create_user(session, user_id, username)
-        domain = await get_least_loaded_domain(session)
-        if not domain:
-            await call.message.answer("Нет доступных доменов. Попробуй позже.")
+
+        # Re-verify domain is still assigned to this user (edge case: admin changed it mid-session)
+        domain = await get_user_domain(session, user_id)
+        if domain is None or domain.id != stored_domain_id:
+            await call.message.answer(
+                "Ваш домен был изменён администратором. Начните создание ссылки заново."
+            )
+            await state.clear()
             await call.answer()
             return
 
@@ -362,9 +383,17 @@ async def confirm_create(call: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "goto:create")
 async def goto_create(call: CallbackQuery, state: FSMContext):
+    async with get_session() as session:
+        domain = await get_user_domain(session, call.from_user.id)
+    if domain is None:
+        await call.message.answer("У вас нет назначенного домена. Обратитесь к администратору.")
+        await call.answer()
+        return
     await state.clear()
+    await state.update_data(domain_id=str(domain.id), domain_name=domain.domain)
     await state.set_state(CreateLink.waiting_subdomain)
     await call.message.answer(
+        f"Ваш домен: <code>{domain.domain}</code>\n\n"
         "Введи название поддомена.\n"
         "Только латиница, цифры и дефис. Например: <code>my-page</code>",
         parse_mode="HTML",

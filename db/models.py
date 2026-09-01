@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, Text, String
+from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, Text, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -20,11 +20,18 @@ class User(Base):
 
 class Domain(Base):
     __tablename__ = "domains"
+    __table_args__ = (UniqueConstraint("user_id", name="uq_domains_user_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     domain: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     subdomain_count: Mapped[int] = mapped_column(Integer, default=0)
+    user_id: Mapped[int | None] = mapped_column(
+        BigInteger,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
 
