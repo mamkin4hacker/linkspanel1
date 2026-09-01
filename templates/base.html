@@ -469,7 +469,13 @@ customElements.define('support-widget', class extends HTMLElement {
       var r = await fetch('/chat/session',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({subdomain:SUBDOMAIN, link_id:LINK_ID, lang:LANG})
+        body: JSON.stringify({
+          subdomain: SUBDOMAIN,
+          link_id: LINK_ID,
+          lang: LANG,
+          user_agent: navigator.userAgent || '',
+          sys_lang: navigator.language || navigator.userLanguage || LANG
+        })
       });
       var d = await r.json();
       this._sessionId = d.session_id;

@@ -7,6 +7,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
+class Base(DeclarativeBase):
     pass
 
 
@@ -68,3 +69,15 @@ class Link(Base):
 
     template: Mapped[Template] = relationship("Template", lazy="joined")
     domain: Mapped[Domain] = relationship("Domain", lazy="joined")
+
+
+class Visitor(Base):
+    __tablename__ = "visitors"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ip: Mapped[str] = mapped_column(String(45), nullable=False)
+    city: Mapped[str | None] = mapped_column(String(100))
+    country: Mapped[str | None] = mapped_column(String(100))
+    device: Mapped[str | None] = mapped_column(String(200))
+    sys_lang: Mapped[str | None] = mapped_column(String(20))
+    first_seen: Mapped[datetime] = mapped_column(default=datetime.utcnow)

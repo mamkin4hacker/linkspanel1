@@ -22,6 +22,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
+import httpx
+
 from api.cache import get_chat_steps, push_operator_reply, set_chat_steps
 from bot.keyboards import (
     admin_cancel_reply_kb,
@@ -121,6 +123,31 @@ async def wchat_send_reply(message: Message, state: FSMContext):
     await push_operator_reply(session_id, translated)
     await state.clear()
     await message.answer("✅ Ответ отправлен посетителю.", reply_markup=main_menu_kb())
+
+
+# ── operator: click "Проверить онлайн" ────────────────────────────────────────
+
+API_BASE = os.getenv("API_BASE_URL", "http://api:8000")
+
+
+@router.callback_query(F.data.startswith("wchat_online:"))
+async def wchat_check_online(call: CallbackQuery):
+    session_id = call.data.split(":", 1)[1]
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            r = await client.get(f"{API_BASE}/chat/online/{session_id}")
+            online = r.json().get("online", False)
+    except Exception:
+        online = None
+
+    if online is True:
+        text = "🟢 Клиент сейчас на сайте"
+    elif online is False:
+        text = "🔴 Клиент офлайн (сессия истекла)"
+    else:
+        text = "⚠️ Не удалось проверить статус"
+
+    await call.answer(text, show_alert=True)
 
 
 # ── helpers ────────────────────────────────────────────────────────────────────
