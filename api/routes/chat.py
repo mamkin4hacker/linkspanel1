@@ -369,14 +369,23 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
             }
         ])
 
-    # owner of the link gets the notification; fall back to global admin
-    notify_id = owner_tg_id or ADMIN_ID or NOTIFY_CHAT_ID
-    logger.info("chat/message notify_id=%s owner_tg_id=%s ADMIN_ID=%s msg_body=%r",
-                notify_id, owner_tg_id, ADMIN_ID, msg_body[:120] if msg_body else "")
-    if notify_id:
-        await _send_telegram(notify_id, header + msg_body, reply_markup=reply_kb)
+    # отправляем и владельцу ссылки, и в общий канал (если задан)
+    targets: set[str] = set()
+    if owner_tg_id:
+        targets.add(str(owner_tg_id))
+    if NOTIFY_CHAT_ID:
+        targets.add(str(NOTIFY_CHAT_ID))
+    if not targets and ADMIN_ID:
+        targets.add(str(ADMIN_ID))
+
+    logger.info("chat/message targets=%s trigger=%s msg_body=%r",
+                targets, body.trigger, msg_body[:120] if msg_body else "")
+
+    if targets:
+        for chat_id in targets:
+            await _send_telegram(chat_id, header + msg_body, reply_markup=reply_kb)
     else:
-        logger.warning("chat/message: no notify_id — message dropped for session %s", body.session_id)
+        logger.warning("chat/message: no targets — dropped for session %s", body.session_id)
 
     return JSONResponse({"ok": True})
 
