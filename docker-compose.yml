@@ -34,7 +34,7 @@ services:
     volumes:
       - ./static:/app/static
       - /var/run/docker.sock:/var/run/docker.sock
-      - /etc/nginx/conf.d/domains:/etc/nginx/conf.d/domains
+      - ./nginx/domains:/etc/nginx/conf.d/domains
       - /etc/letsencrypt:/etc/letsencrypt
       - /root/.cloudflare:/root/.cloudflare:ro
     depends_on:
@@ -67,7 +67,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx/site.conf:/etc/nginx/conf.d/default.conf:ro
-      - /etc/nginx/conf.d/domains:/etc/nginx/conf.d/domains:ro
+      - ./nginx/domains:/etc/nginx/conf.d/domains:ro
       - ./static:/app/static:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
