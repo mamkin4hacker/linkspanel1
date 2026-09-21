@@ -29,8 +29,6 @@ services:
     build: .
     command: python -m bot.main
     env_file: .env
-    environment:
-      ADMIN_ID: ${ADMIN_ID:-0}
     volumes:
       - ./static:/app/static
       - /var/run/docker.sock:/var/run/docker.sock
