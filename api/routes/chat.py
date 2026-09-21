@@ -241,7 +241,7 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
 
     ru_text = body.text
     if visitor_lang != "ru" and body.text.strip():
-        ru_text = await _translate(body.text, dest="ru")
+        ru_text = await _translate(body.text, dest="ru", source=visitor_lang)
 
     await append_chat_message(body.session_id, "visitor", body.text)
 

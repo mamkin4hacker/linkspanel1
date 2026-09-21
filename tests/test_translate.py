@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -64,7 +64,7 @@ async def test_translate_falls_back_to_mymemory_on_rate_limit():
          patch("api.translate._mymemory_sync", return_value="hola") as mm, \
          patch("api.translate._RATE.acquire", new=AsyncMock()):
         assert await _translate("привет", "es") == "hola"
-        mm.assert_called_once_with("привет", "es")
+        mm.assert_called_once_with("привет", "es", source="ru")
 
 
 def test_mymemory_maps_short_codes_to_locales():
@@ -74,3 +74,13 @@ def test_mymemory_maps_short_codes_to_locales():
     assert _mymemory_code("ja") == "ja-JP"
     assert _mymemory_code("en") == "en-GB"
     assert _mymemory_code("zh") == "zh-CN"
+    assert _mymemory_code("auto") == "ru-RU"
+
+
+def test_mymemory_uses_explicit_source_locale_not_auto():
+    fake = MagicMock()
+    fake.translate.return_value = "hola"
+    with patch("api.translate._mymemory_client", return_value=fake) as cls:
+        from api.translate import _mymemory_sync
+        assert _mymemory_sync("привет", "es") == "hola"
+    cls.assert_called_once_with("ru", "es")

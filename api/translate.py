@@ -49,11 +49,17 @@ _MYMEMORY_LANG = {
 
 
 def _mymemory_code(lang: str) -> str:
-    if not lang or lang == "auto":
-        return "auto"
+    # MyMemory rejects AUTO in langpair=…; chat copy is authored in Russian.
+    if not lang or lang.lower() == "auto":
+        return "ru-RU"
     if "-" in lang:
         return lang
     return _MYMEMORY_LANG.get(lang.lower(), lang)
+
+
+def _mymemory_client(source: str, dest: str):
+    from deep_translator import MyMemoryTranslator
+    return MyMemoryTranslator(source=_mymemory_code(source), target=_mymemory_code(dest))
 
 
 def _google_sync(text: str, dest: str) -> str:
@@ -62,9 +68,8 @@ def _google_sync(text: str, dest: str) -> str:
     return result or text
 
 
-def _mymemory_sync(text: str, dest: str) -> str:
-    from deep_translator import MyMemoryTranslator
-    result = MyMemoryTranslator(source="auto", target=_mymemory_code(dest)).translate(text)
+def _mymemory_sync(text: str, dest: str, source: str = "ru") -> str:
+    result = _mymemory_client(source, dest).translate(text)
     return result or text
 
 
@@ -76,9 +81,8 @@ def _google_batch_sync(texts: list[str], dest: str) -> list[str]:
     return [r or t for r, t in zip(result, texts)]
 
 
-def _mymemory_batch_sync(texts: list[str], dest: str) -> list[str]:
-    from deep_translator import MyMemoryTranslator
-    result = MyMemoryTranslator(source="auto", target=_mymemory_code(dest)).translate_batch(texts)
+def _mymemory_batch_sync(texts: list[str], dest: str, source: str = "ru") -> list[str]:
+    result = _mymemory_client(source, dest).translate_batch(texts)
     if not result:
         return list(texts)
     return [r or t for r, t in zip(result, texts)]
@@ -112,21 +116,31 @@ async def _call_with_fallback(google_fn, ms_fn, *args):
         raise
 
 
-async def _translate(text: str, dest: str) -> str:
+async def _translate(text: str, dest: str, source: str = "ru") -> str:
     if not text:
         return text
     try:
-        return await _call_with_fallback(_google_sync, _mymemory_sync, text, dest)
+        return await _call_with_fallback(
+            lambda t, d: _google_sync(t, d),
+            lambda t, d: _mymemory_sync(t, d, source=source),
+            text,
+            dest,
+        )
     except Exception:
         logger.error("Translation failed, returning original text")
         return text
 
 
-async def _translate_many(texts: list[str], dest: str) -> list[str]:
+async def _translate_many(texts: list[str], dest: str, source: str = "ru") -> list[str]:
     if not texts:
         return []
     try:
-        return await _call_with_fallback(_google_batch_sync, _mymemory_batch_sync, texts, dest)
+        return await _call_with_fallback(
+            lambda ts, d: _google_batch_sync(ts, d),
+            lambda ts, d: _mymemory_batch_sync(ts, d, source=source),
+            texts,
+            dest,
+        )
     except Exception:
         logger.error("Batch translation failed, returning original texts")
         return list(texts)
