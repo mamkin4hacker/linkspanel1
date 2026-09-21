@@ -61,6 +61,25 @@ def test_reload_finds_fallback_name_when_label_empty(tmp_path, monkeypatch):
     assert ok is True, err
 
 
+def test_reload_error_html_escapes_angle_brackets(tmp_path, monkeypatch):
+    sock = tmp_path / "docker.sock"
+    sock.write_bytes(b"")
+    monkeypatch.setattr("bot.utils.nginx_conf._DOCKER_SOCK", str(sock))
+
+    def fake_request(method, path, body=None, timeout=15):
+        if method == "GET" and path.startswith("/containers/json"):
+            return 200, json.dumps([{"Id": "abc123"}]).encode()
+        if method == "POST" and path.endswith("/exec"):
+            return 500, b'<urlopen error [Errno 2]>'
+        return 404, b"no"
+
+    with patch("bot.utils.nginx_conf._docker_request", side_effect=fake_request):
+        ok, err = _reload_nginx_sync()
+    assert ok is False
+    assert "<urlopen" not in err
+    assert "&lt;urlopen" in err
+
+
 def test_remove_domain_conf_deletes_file(tmp_path, monkeypatch):
     monkeypatch.setattr("bot.utils.nginx_conf.NGINX_DOMAINS_DIR", str(tmp_path))
     write_domain_conf("example.com")

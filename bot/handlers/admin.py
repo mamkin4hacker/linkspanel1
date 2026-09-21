@@ -9,6 +9,7 @@ Features:
 - Grant access by Telegram user ID (with optional note)
 - Revoke access from a user
 """
+import html
 import os
 import re
 
@@ -601,7 +602,7 @@ async def admin_domain_delete_ok(call: CallbackQuery):
         ok, reason = await delete_domain(session, domain_id)
     if not ok:
         await call.message.edit_text(
-            f"❌ Не удалено: {reason}",
+            f"❌ Не удалено: {html.escape(reason)}",
             reply_markup=admin_panel_kb(),
             parse_mode="HTML",
         )
@@ -728,7 +729,7 @@ async def admin_add_domain_receive(message: Message, state: FSMContext):
     except Exception as e:
         await status_msg.edit_text(
             f"✅ DNS настроен\n✅ SSL-сертификат выпущен\n"
-            f"❌ <b>Не удалось записать nginx конфиг:</b> <code>{e}</code>",
+            f"❌ <b>Не удалось записать nginx конфиг:</b> <code>{html.escape(str(e))}</code>",
             parse_mode="HTML",
             reply_markup=admin_panel_kb(),
         )

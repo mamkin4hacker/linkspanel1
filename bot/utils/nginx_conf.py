@@ -5,6 +5,7 @@ Writes per-domain server blocks to NGINX_DOMAINS_DIR and reloads nginx
 via the Docker Engine API on the mounted unix socket (no docker CLI).
 """
 import asyncio
+import html
 import http.client
 import json
 import os
@@ -120,6 +121,8 @@ def _docker_request(method: str, path: str, body: dict | None = None, timeout: f
             return resp.status, resp.read()
     except urllib.error.HTTPError as e:
         return e.code, e.read()
+    except urllib.error.URLError as e:
+        raise ConnectionError(str(e.reason) if getattr(e, "reason", None) else e) from e
 
 
 def _find_nginx_container() -> tuple[str | None, str]:
@@ -153,7 +156,7 @@ def _find_nginx_container() -> tuple[str | None, str]:
     extra = last if "last" in locals() else raw.decode(errors="replace")[:300]
     return None, (
         f"контейнер nginx не найден (искал service={COMPOSE_SERVICE_NAME} "
-        f"и {_NGINX_CONTAINER_FALLBACK}). {extra}"
+        f"и {_NGINX_CONTAINER_FALLBACK}). {html.escape(extra)}"
     )
 
 
@@ -172,14 +175,14 @@ def _reload_nginx_sync() -> tuple[bool, str]:
     )
     if status not in (200, 201):
         msg = raw.decode(errors="replace").strip() or f"HTTP {status}"
-        return False, f"не удалось создать exec в {container}:\n<code>{msg}</code>"
+        return False, f"не удалось создать exec в {container}:\n<code>{html.escape(msg)}</code>"
 
     try:
         exec_id = json.loads(raw).get("Id")
     except json.JSONDecodeError:
         exec_id = None
     if not exec_id:
-        return False, f"Docker API не вернул Id exec:\n<code>{raw.decode(errors='replace')}</code>"
+        return False, f"Docker API не вернул Id exec:\n<code>{html.escape(raw.decode(errors='replace'))}</code>"
 
     status, raw = _docker_request(
         "POST",
@@ -188,7 +191,7 @@ def _reload_nginx_sync() -> tuple[bool, str]:
     )
     output = raw.decode(errors="replace").strip()
     if status not in (200, 201):
-        return False, f"nginx reload не запустился:\n<code>{output or status}</code>"
+        return False, f"nginx reload не запустился:\n<code>{html.escape(str(output or status))}</code>"
 
     st2, inspect_raw = _docker_request("GET", f"/exec/{exec_id}/json")
     exit_code = None
@@ -199,7 +202,7 @@ def _reload_nginx_sync() -> tuple[bool, str]:
             exit_code = None
 
     if exit_code not in (0, None):
-        return False, f"nginx reload завершился с ошибкой:\n<code>{output or exit_code}</code>"
+        return False, f"nginx reload завершился с ошибкой:\n<code>{html.escape(str(output or exit_code))}</code>"
     return True, ""
 
 
@@ -216,4 +219,4 @@ async def reload_nginx() -> tuple[bool, str]:
     except FileNotFoundError:
         return False, "Docker-сокет недоступен."
     except Exception as e:
-        return False, f"Ошибка docker exec через сокет: <code>{e}</code>"
+        return False, f"Ошибка docker exec через сокет: <code>{html.escape(str(e))}</code>"
