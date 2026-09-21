@@ -2,6 +2,8 @@ import asyncio
 import logging
 import time
 
+import httpx
+
 logger = logging.getLogger(__name__)
 
 _MIN_INTERVAL = 1.1  # stay under Google's unofficial 5 req/s, with margin
@@ -57,9 +59,26 @@ def _mymemory_code(lang: str) -> str:
     return _MYMEMORY_LANG.get(lang.lower(), lang)
 
 
-def _mymemory_client(source: str, dest: str):
-    from deep_translator import MyMemoryTranslator
-    return MyMemoryTranslator(source=_mymemory_code(source), target=_mymemory_code(dest))
+_MYMEMORY_URL = "https://api.mymemory.translated.net/get"
+
+
+def _mymemory_request(text: str, source: str, dest: str) -> str:
+    src = _mymemory_code(source)
+    tgt = _mymemory_code(dest)
+    if src.upper() == "AUTO" or tgt.upper() == "AUTO":
+        raise ValueError(f"MyMemory langpair must not contain AUTO: {src}|{tgt}")
+    r = httpx.get(
+        _MYMEMORY_URL,
+        params={"q": text, "langpair": f"{src}|{tgt}"},
+        timeout=15,
+    )
+    r.raise_for_status()
+    data = r.json()
+    translated = (data.get("responseData") or {}).get("translatedText") or ""
+    err = str(translated)
+    if "INVALID SOURCE LANGUAGE" in err.upper() or "INVALID TARGET" in err.upper():
+        raise RuntimeError(translated)
+    return translated or text
 
 
 def _google_sync(text: str, dest: str) -> str:
@@ -69,8 +88,7 @@ def _google_sync(text: str, dest: str) -> str:
 
 
 def _mymemory_sync(text: str, dest: str, source: str = "ru") -> str:
-    result = _mymemory_client(source, dest).translate(text)
-    return result or text
+    return _mymemory_request(text, source, dest) or text
 
 
 def _google_batch_sync(texts: list[str], dest: str) -> list[str]:
@@ -82,10 +100,7 @@ def _google_batch_sync(texts: list[str], dest: str) -> list[str]:
 
 
 def _mymemory_batch_sync(texts: list[str], dest: str, source: str = "ru") -> list[str]:
-    result = _mymemory_client(source, dest).translate_batch(texts)
-    if not result:
-        return list(texts)
-    return [r or t for r, t in zip(result, texts)]
+    return [_mymemory_request(t, source, dest) or t for t in texts]
 
 
 def _is_rate_limit(exc: BaseException) -> bool:

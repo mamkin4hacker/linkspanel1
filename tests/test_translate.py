@@ -77,10 +77,17 @@ def test_mymemory_maps_short_codes_to_locales():
     assert _mymemory_code("auto") == "ru-RU"
 
 
-def test_mymemory_uses_explicit_source_locale_not_auto():
-    fake = MagicMock()
-    fake.translate.return_value = "hola"
-    with patch("api.translate._mymemory_client", return_value=fake) as cls:
+def test_mymemory_http_uses_rfc3066_langpair_not_auto():
+    class FakeResp:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"responseData": {"translatedText": "hola"}}
+
+    with patch("api.translate.httpx.get", return_value=FakeResp()) as get:
         from api.translate import _mymemory_sync
         assert _mymemory_sync("привет", "es") == "hola"
-    cls.assert_called_once_with("ru", "es")
+    params = get.call_args.kwargs["params"]
+    assert params["langpair"] == "ru-RU|es-ES"
+    assert "AUTO" not in params["langpair"].upper()
