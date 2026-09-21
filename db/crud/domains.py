@@ -121,3 +121,73 @@ async def create_domain(session: AsyncSession, domain: str, autocommit: bool = T
     else:
         await session.flush()
     return obj
+
+
+async def list_domains(session: AsyncSession) -> Sequence[Domain]:
+    result = await session.execute(select(Domain).order_by(Domain.domain))
+    return result.scalars().all()
+
+
+async def get_domain_by_id(session: AsyncSession, domain_id: uuid.UUID) -> Domain | None:
+    result = await session.execute(select(Domain).where(Domain.id == domain_id))
+    return result.scalar_one_or_none()
+
+
+async def reassign_domain(
+    session: AsyncSession,
+    domain_id: uuid.UUID,
+    user_id: int,
+    autocommit: bool = True,
+) -> Domain | None:
+    """Give domain to user; previous owner of this domain and user's old domain are released."""
+    result = await session.execute(
+        select(Domain).where(Domain.id == domain_id).with_for_update()
+    )
+    domain = result.scalar_one_or_none()
+    if domain is None:
+        return None
+
+    others = await session.execute(
+        select(Domain).where(Domain.user_id == user_id, Domain.id != domain_id).with_for_update()
+    )
+    for old in others.scalars().all():
+        old.user_id = None
+
+    domain.user_id = user_id
+    if autocommit:
+        await session.commit()
+        await session.refresh(domain)
+    else:
+        await session.flush()
+    return domain
+
+
+async def count_active_links_for_domain(session: AsyncSession, domain_id: uuid.UUID) -> int:
+    from sqlalchemy import func
+    from db.models import Link
+
+    result = await session.execute(
+        select(func.count()).select_from(Link).where(
+            Link.domain_id == domain_id, Link.is_active == True
+        )
+    )
+    return result.scalar_one()
+
+
+async def delete_domain(
+    session: AsyncSession,
+    domain_id: uuid.UUID,
+    autocommit: bool = True,
+) -> tuple[bool, str]:
+    domain = await get_domain_by_id(session, domain_id)
+    if domain is None:
+        return False, "Домен не найден."
+    n = await count_active_links_for_domain(session, domain_id)
+    if n:
+        return False, f"На домене {n} активных ссылок. Сначала удали или перенеси их."
+    await session.delete(domain)
+    if autocommit:
+        await session.commit()
+    else:
+        await session.flush()
+    return True, ""

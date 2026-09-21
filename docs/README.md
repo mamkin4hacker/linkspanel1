@@ -14,6 +14,7 @@
 | [api.md](./api.md) | API рендерера страниц, роуты, логика |
 | [infrastructure.md](./infrastructure.md) | Nginx, SSL, DNS, управление доменами |
 | [deploy.md](./deploy.md) | Пошаговый деплой с нуля |
+| [docker.md](./docker.md) | Docker: рестарты, какие файлы править, .env, nginx, миграции |
 
 ---
 

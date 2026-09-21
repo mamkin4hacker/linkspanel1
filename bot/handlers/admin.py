@@ -23,11 +23,14 @@ from bot.keyboards import (
     admin_users_list_kb,
     admin_cancel_kb,
     admin_domain_list_kb,
+    admin_domains_manage_kb,
+    admin_domain_card_kb,
+    admin_domain_delete_confirm_kb,
     main_menu_kb,
 )
 from bot.utils.cloudflare import setup_dns
 from bot.utils.certbot import issue_cert
-from bot.utils.nginx_conf import write_domain_conf, reload_nginx
+from bot.utils.nginx_conf import write_domain_conf, remove_domain_conf, reload_nginx
 from db.crud.allowed_users import (
     grant_access,
     list_allowed_users,
@@ -39,6 +42,10 @@ from db.crud.domains import (
     get_unassigned_domains,
     get_user_domain,
     unassign_domain_from_user,
+    list_domains,
+    get_domain_by_id,
+    reassign_domain,
+    delete_domain,
 )
 from db.session import get_session
 
@@ -66,6 +73,7 @@ class AdminPanel(StatesGroup):
     # domain assignment
     assign_domain_pick_user   = State()
     assign_domain_pick_domain = State()
+    reassign_domain_pick_user = State()
     # domain provisioning
     add_domain_input = State()     # waiting for domain name to provision
 
@@ -340,8 +348,7 @@ async def admin_assign_domain_receive_user(message: Message, state: FSMContext):
         await message.answer(
             f"У пользователя <code>{target_id}</code> уже есть домен: "
             f"<code>{current.domain}</code>.\n"
-            "Сначала снимите текущее назначение, если хотите переназначить.\n\n"
-            f"Для снятия: <code>/unassign {target_id}</code>",
+            "Переназначь через <b>🌐 Домены</b> → домен → Переназначить.",
             reply_markup=admin_panel_kb(),
             parse_mode="HTML",
         )
@@ -417,6 +424,199 @@ async def admin_unassign_domain_inline(call: CallbackQuery):
         await call.answer(f"Домен пользователя {target_id} освобождён.", show_alert=True)
     else:
         await call.answer(f"У пользователя {target_id} нет назначенного домена.", show_alert=True)
+
+
+# ── domain pool management ───────────────────────────────────────────────────
+
+def _domain_card_text(domain) -> str:
+    owner = f"<code>{domain.user_id}</code>" if domain.user_id else "свободен"
+    return (
+        f"🌐 <b>{domain.domain}</b>\n"
+        f"Владелец: {owner}\n"
+        f"Ссылок (счётчик): {domain.subdomain_count}\n"
+        f"Активен: {'да' if domain.is_active else 'нет'}"
+    )
+
+
+@router.callback_query(F.data == "admin:domains")
+async def admin_domains_list(call: CallbackQuery, state: FSMContext):
+    if not is_super_admin(call.from_user.id):
+        await call.answer("Нет доступа.", show_alert=True)
+        return
+    await state.clear()
+    async with get_session() as session:
+        domains = await list_domains(session)
+    if not domains:
+        await call.message.edit_text(
+            "Пул доменов пуст. Добавь домен через ➕.",
+            reply_markup=admin_domains_manage_kb([]),
+            parse_mode="HTML",
+        )
+    else:
+        await call.message.edit_text(
+            "🌐 <b>Домены</b>\nВыбери домен:",
+            reply_markup=admin_domains_manage_kb(domains),
+            parse_mode="HTML",
+        )
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("admin:domain_card:"))
+async def admin_domain_card(call: CallbackQuery, state: FSMContext):
+    if not is_super_admin(call.from_user.id):
+        await call.answer("Нет доступа.", show_alert=True)
+        return
+    import uuid as _uuid
+    domain_id = _uuid.UUID(call.data.split(":")[2])
+    async with get_session() as session:
+        domain = await get_domain_by_id(session, domain_id)
+    if domain is None:
+        await call.answer("Домен не найден.", show_alert=True)
+        return
+    await state.clear()
+    await call.message.edit_text(
+        _domain_card_text(domain),
+        reply_markup=admin_domain_card_kb(domain),
+        parse_mode="HTML",
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("admin:domain_unassign:"))
+async def admin_domain_unassign_card(call: CallbackQuery):
+    if not is_super_admin(call.from_user.id):
+        await call.answer("Нет доступа.", show_alert=True)
+        return
+    import uuid as _uuid
+    domain_id = _uuid.UUID(call.data.split(":")[2])
+    async with get_session() as session:
+        domain = await get_domain_by_id(session, domain_id)
+        if domain is None or domain.user_id is None:
+            await call.answer("Домен уже свободен.", show_alert=True)
+            return
+        owner = domain.user_id
+        await unassign_domain_from_user(session, owner)
+        domain = await get_domain_by_id(session, domain_id)
+    await call.message.edit_text(
+        _domain_card_text(domain) + f"\n\n🔓 Снят с <code>{owner}</code>.",
+        reply_markup=admin_domain_card_kb(domain),
+        parse_mode="HTML",
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("admin:domain_reassign:"))
+async def admin_domain_reassign_start(call: CallbackQuery, state: FSMContext):
+    if not is_super_admin(call.from_user.id):
+        await call.answer("Нет доступа.", show_alert=True)
+        return
+    import uuid as _uuid
+    domain_id = _uuid.UUID(call.data.split(":")[2])
+    await state.update_data(reassign_domain_id=str(domain_id))
+    await state.set_state(AdminPanel.reassign_domain_pick_user)
+    await call.message.answer(
+        "Введите <b>Telegram ID</b> нового владельца:",
+        reply_markup=admin_cancel_kb(),
+        parse_mode="HTML",
+    )
+    await call.answer()
+
+
+@router.message(AdminPanel.reassign_domain_pick_user)
+async def admin_domain_reassign_receive(message: Message, state: FSMContext):
+    if not is_super_admin(message.from_user.id):
+        return
+    raw = (message.text or "").strip()
+    if raw.lower() == "отмена":
+        await state.clear()
+        await message.answer(
+            "👑 <b>Админ панель</b>\nВыберите действие:",
+            reply_markup=admin_panel_kb(),
+            parse_mode="HTML",
+        )
+        return
+    if not raw.lstrip("-").isdigit():
+        await message.answer("Некорректный ID. Введите числовой Telegram ID:")
+        return
+    target_id = int(raw)
+    data = await state.get_data()
+    import uuid as _uuid
+    domain_id = _uuid.UUID(data["reassign_domain_id"])
+    async with get_session() as session:
+        domain = await reassign_domain(session, domain_id, target_id)
+    await state.clear()
+    if domain is None:
+        await message.answer("Не удалось переназначить домен.", reply_markup=admin_panel_kb())
+        return
+    await message.answer(
+        f"✅ <code>{domain.domain}</code> → пользователь <code>{target_id}</code>.",
+        reply_markup=admin_panel_kb(),
+        parse_mode="HTML",
+    )
+    try:
+        await message.bot.send_message(
+            target_id,
+            f"✅ Вам назначен домен <code>{domain.domain}</code>.",
+            parse_mode="HTML",
+        )
+    except Exception:
+        pass
+
+
+@router.callback_query(F.data.startswith("admin:domain_delask:"))
+async def admin_domain_delete_ask(call: CallbackQuery):
+    if not is_super_admin(call.from_user.id):
+        await call.answer("Нет доступа.", show_alert=True)
+        return
+    import uuid as _uuid
+    domain_id = _uuid.UUID(call.data.split(":")[2])
+    async with get_session() as session:
+        domain = await get_domain_by_id(session, domain_id)
+    if domain is None:
+        await call.answer("Домен не найден.", show_alert=True)
+        return
+    await call.message.edit_text(
+        f"Удалить <code>{domain.domain}</code> из пула?\n"
+        "Nginx-конфиг будет снят. DNS и сертификат на Cloudflare не трогаем.\n"
+        "Если есть активные ссылки — удаление будет отклонено.",
+        reply_markup=admin_domain_delete_confirm_kb(domain.id),
+        parse_mode="HTML",
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("admin:domain_delete_ok:"))
+async def admin_domain_delete_ok(call: CallbackQuery):
+    if not is_super_admin(call.from_user.id):
+        await call.answer("Нет доступа.", show_alert=True)
+        return
+    import uuid as _uuid
+    domain_id = _uuid.UUID(call.data.split(":")[2])
+    async with get_session() as session:
+        domain = await get_domain_by_id(session, domain_id)
+        if domain is None:
+            await call.answer("Домен не найден.", show_alert=True)
+            return
+        name = domain.domain
+        ok, reason = await delete_domain(session, domain_id)
+    if not ok:
+        await call.message.edit_text(
+            f"❌ Не удалено: {reason}",
+            reply_markup=admin_panel_kb(),
+            parse_mode="HTML",
+        )
+        await call.answer()
+        return
+
+    remove_domain_conf(name)
+    reload_ok, reload_err = await reload_nginx()
+    extra = "" if reload_ok else f"\n⚠️ nginx reload: {reload_err}"
+    await call.message.edit_text(
+        f"🗑 Домен <code>{name}</code> удалён из базы и nginx.{extra}",
+        reply_markup=admin_panel_kb(),
+        parse_mode="HTML",
+    )
+    await call.answer()
 
 
 # ── add domain: full auto-provisioning ───────────────────────────────────────

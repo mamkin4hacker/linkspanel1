@@ -147,7 +147,7 @@ def admin_panel_kb() -> InlineKeyboardMarkup:
     builder.button(text="📋 Список пользователей", callback_data="admin:list")
     builder.button(text="✅ Выдать доступ",         callback_data="admin:grant")
     builder.button(text="❌ Отозвать доступ",        callback_data="admin:revoke")
-    builder.button(text="🌐 Назначить домен",        callback_data="admin:assign_domain")
+    builder.button(text="🌐 Домены",                 callback_data="admin:domains")
     builder.button(text="➕ Добавить домен",         callback_data="admin:add_domain")
     builder.button(text="◀️ Главное меню",           callback_data="admin:back")
     builder.adjust(1)
@@ -160,6 +160,40 @@ def admin_domain_list_kb(domains: list) -> InlineKeyboardMarkup:
     for d in domains:
         builder.button(text=d.domain, callback_data=f"admin:domain_pick:{d.id}")
     builder.button(text="◀️ Отмена", callback_data="admin:back_to_panel")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def admin_domains_manage_kb(domains: list) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for d in domains:
+        owner = f" · {d.user_id}" if d.user_id else " · свободно"
+        extra = f" · {d.subdomain_count} ссылок" if d.subdomain_count else ""
+        builder.button(
+            text=f"{d.domain}{owner}{extra}",
+            callback_data=f"admin:domain_card:{d.id}",
+        )
+    builder.button(text="➕ Добавить", callback_data="admin:add_domain")
+    builder.button(text="◀️ Назад", callback_data="admin:back_to_panel")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def admin_domain_card_kb(domain) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="👤 Переназначить", callback_data=f"admin:domain_reassign:{domain.id}")
+    if domain.user_id:
+        builder.button(text="🔓 Снять с пользователя", callback_data=f"admin:domain_unassign:{domain.id}")
+    builder.button(text="🗑 Удалить", callback_data=f"admin:domain_delask:{domain.id}")
+    builder.button(text="◀️ К списку", callback_data="admin:domains")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def admin_domain_delete_confirm_kb(domain_id) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="✅ Да, удалить", callback_data=f"admin:domain_delete_ok:{domain_id}")
+    builder.button(text="◀️ Отмена", callback_data=f"admin:domain_card:{domain_id}")
     builder.adjust(1)
     return builder.as_markup()
 

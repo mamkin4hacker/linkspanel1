@@ -8,6 +8,12 @@ from db.crud.domains import (
     increment_subdomain_count,
     decrement_subdomain_count,
     get_all_active_domains,
+    list_domains,
+    get_domain_by_id,
+    reassign_domain,
+    delete_domain,
+    unassign_domain_from_user,
+    assign_domain_to_user,
 )
 from db.crud.users import get_or_create_user
 from db.crud.templates import create_template, update_template, get_template_by_id
@@ -125,6 +131,57 @@ class TestDomains:
         domains = await get_all_active_domains(db_session)
         ids = [x.id for x in domains]
         assert d.id in ids
+
+    async def test_list_domains_includes_assigned(self, db_session):
+        user = await _make_user(db_session)
+        d = await _make_domain(db_session)
+        await assign_domain_to_user(db_session, d.id, user.id, autocommit=False)
+        await db_session.flush()
+        listed = await list_domains(db_session)
+        assert any(x.id == d.id and x.user_id == user.id for x in listed)
+
+    async def test_reassign_moves_from_previous_owner(self, db_session):
+        u1 = await _make_user(db_session)
+        u2 = await _make_user(db_session)
+        d = await _make_domain(db_session)
+        await assign_domain_to_user(db_session, d.id, u1.id, autocommit=False)
+        await db_session.flush()
+        moved = await reassign_domain(db_session, d.id, u2.id, autocommit=False)
+        await db_session.flush()
+        await db_session.refresh(d)
+        assert moved is not None
+        assert d.user_id == u2.id
+
+    async def test_reassign_releases_users_old_domain(self, db_session):
+        u = await _make_user(db_session)
+        old = await _make_domain(db_session)
+        new = await _make_domain(db_session)
+        await assign_domain_to_user(db_session, old.id, u.id, autocommit=False)
+        await db_session.flush()
+        await reassign_domain(db_session, new.id, u.id, autocommit=False)
+        await db_session.flush()
+        await db_session.refresh(old)
+        await db_session.refresh(new)
+        assert old.user_id is None
+        assert new.user_id == u.id
+
+    async def test_delete_domain_refuses_when_links_exist(self, db_session):
+        user = await _make_user(db_session)
+        d = await _make_domain(db_session)
+        await _make_link(db_session, user.id, d)
+        await db_session.flush()
+        ok, reason = await delete_domain(db_session, d.id, autocommit=False)
+        assert ok is False
+        assert "ссыл" in reason.lower()
+
+    async def test_delete_domain_ok_when_empty(self, db_session):
+        d = await _make_domain(db_session)
+        await db_session.flush()
+        did = d.id
+        ok, reason = await delete_domain(db_session, did, autocommit=False)
+        await db_session.flush()
+        assert ok is True
+        assert await get_domain_by_id(db_session, did) is None
 
 
 # ── templates ──────────────────────────────────────────────────────────────────
