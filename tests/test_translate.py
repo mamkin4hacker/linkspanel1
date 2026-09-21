@@ -61,6 +61,16 @@ async def test_translate_falls_back_to_mymemory_on_rate_limit():
         raise RuntimeError("You made too many requests to the server")
 
     with patch("api.translate._google_sync", side_effect=google_fail), \
-         patch("api.translate._mymemory_sync", return_value="hola"), \
+         patch("api.translate._mymemory_sync", return_value="hola") as mm, \
          patch("api.translate._RATE.acquire", new=AsyncMock()):
         assert await _translate("привет", "es") == "hola"
+        mm.assert_called_once_with("привет", "es")
+
+
+def test_mymemory_maps_short_codes_to_locales():
+    from api.translate import _mymemory_code
+
+    assert _mymemory_code("ru") == "ru-RU"
+    assert _mymemory_code("ja") == "ja-JP"
+    assert _mymemory_code("en") == "en-GB"
+    assert _mymemory_code("zh") == "zh-CN"

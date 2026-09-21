@@ -23,6 +23,38 @@ class _RateLimiter:
 
 _RATE = _RateLimiter()
 
+# MyMemory wants BCP-47 locales, not ISO-639-1 (ru → ru-RU).
+_MYMEMORY_LANG = {
+    "ar": "ar-SA",
+    "cs": "cs-CZ",
+    "da": "da-DK",
+    "de": "de-DE",
+    "en": "en-GB",
+    "es": "es-ES",
+    "fi": "fi-FI",
+    "fr": "fr-FR",
+    "it": "it-IT",
+    "ja": "ja-JP",
+    "ko": "ko-KR",
+    "nl": "nl-NL",
+    "no": "nb-NO",
+    "pl": "pl-PL",
+    "pt": "pt-PT",
+    "ru": "ru-RU",
+    "sv": "sv-SE",
+    "tr": "tr-TR",
+    "uk": "uk-UA",
+    "zh": "zh-CN",
+}
+
+
+def _mymemory_code(lang: str) -> str:
+    if not lang or lang == "auto":
+        return "auto"
+    if "-" in lang:
+        return lang
+    return _MYMEMORY_LANG.get(lang.lower(), lang)
+
 
 def _google_sync(text: str, dest: str) -> str:
     from deep_translator import GoogleTranslator
@@ -32,7 +64,7 @@ def _google_sync(text: str, dest: str) -> str:
 
 def _mymemory_sync(text: str, dest: str) -> str:
     from deep_translator import MyMemoryTranslator
-    result = MyMemoryTranslator(source="auto", target=dest).translate(text)
+    result = MyMemoryTranslator(source="auto", target=_mymemory_code(dest)).translate(text)
     return result or text
 
 
@@ -46,7 +78,7 @@ def _google_batch_sync(texts: list[str], dest: str) -> list[str]:
 
 def _mymemory_batch_sync(texts: list[str], dest: str) -> list[str]:
     from deep_translator import MyMemoryTranslator
-    result = MyMemoryTranslator(source="auto", target=dest).translate_batch(texts)
+    result = MyMemoryTranslator(source="auto", target=_mymemory_code(dest)).translate_batch(texts)
     if not result:
         return list(texts)
     return [r or t for r, t in zip(result, texts)]
