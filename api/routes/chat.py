@@ -13,13 +13,16 @@ from api.cache import (
     append_chat_message,
     check_heartbeat,
     create_chat_session,
+    get_cached_translation,
     get_chat_session,
     get_chat_steps,
     pop_operator_reply,
     push_operator_reply,
+    set_cached_translation,
     touch_heartbeat,
     update_chat_session_lang,
 )
+from api.translate import _translate, _translate_many
 from db.crud.links import get_link_by_subdomain_and_id
 from db.crud.users import get_or_create_user
 from db.crud.visitors import get_or_create_visitor
@@ -72,22 +75,28 @@ def _parse_device(user_agent: str) -> str:
 
 # ── translation ───────────────────────────────────────────────────────────────
 
-def _translate_sync(text: str, dest: str) -> str:
-    from deep_translator import GoogleTranslator
-    result = GoogleTranslator(source="auto", target=dest).translate(text)
-    return result or text
-
-
-async def _translate(text: str, dest: str) -> str:
-    for attempt in range(3):
-        try:
-            return await asyncio.to_thread(_translate_sync, text, dest)
-        except Exception as exc:
-            logger.warning("Translation attempt %d failed: %s", attempt + 1, exc)
-            if attempt < 2:
-                await asyncio.sleep(1.5 ** attempt)
-    logger.error("Translation failed after 3 attempts, returning original text")
-    return text
+async def _translate_steps(steps: list, dest: str) -> list:
+    fields: list[tuple[int, str]] = []
+    originals: list[str] = []
+    out = [dict(s) for s in steps]
+    for i, s in enumerate(out):
+        for key in ("text", "button"):
+            val = s.get(key)
+            if not val:
+                continue
+            cached = await get_cached_translation(val, dest)
+            if cached is not None:
+                s[key] = cached
+            else:
+                fields.append((i, key))
+                originals.append(val)
+    if originals:
+        translated = await _translate_many(originals, dest)
+        for (i, key), src, dst in zip(fields, originals, translated):
+            out[i][key] = dst
+            if dst != src:
+                await set_cached_translation(src, dest, dst)
+    return out
 
 
 def _detect_lang(text: str) -> str:
@@ -205,15 +214,7 @@ async def start_session(body: StartSession, request: Request) -> JSONResponse:
 async def get_steps(subdomain: str, link_id: str, lang: str = "ru") -> JSONResponse:
     steps = await get_chat_steps(subdomain, link_id)
     if lang and lang != "ru":
-        translated = []
-        for s in steps:
-            s = dict(s)
-            if s.get("text"):
-                s["text"] = await _translate(s["text"], dest=lang)
-            if s.get("button"):
-                s["button"] = await _translate(s["button"], dest=lang)
-            translated.append(s)
-        steps = translated
+        steps = await _translate_steps(steps, dest=lang)
     return JSONResponse(steps)
 
 

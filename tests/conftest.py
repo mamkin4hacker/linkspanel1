@@ -32,8 +32,9 @@ class FakeRedis:
     async def set(self, key, value, ex=None):
         self._store[key] = value
 
-    async def delete(self, key):
-        self._store.pop(key, None)
+    async def delete(self, *keys):
+        for key in keys:
+            self._store.pop(key, None)
 
     def clear(self):
         self._store.clear()

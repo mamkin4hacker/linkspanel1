@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 
@@ -69,8 +70,37 @@ async def get_chat_steps(subdomain: str = "", link_id: str = "") -> list:
     return list(_DEFAULT_STEPS)
 
 
+def _translation_key(text: str, lang: str) -> str:
+    digest = hashlib.sha256(text.encode()).hexdigest()
+    return f"chat_tr:{digest}:{lang}"
+
+
+async def get_cached_translation(text: str, lang: str) -> str | None:
+    return await get_cached(_translation_key(text, lang))
+
+
+async def set_cached_translation(text: str, lang: str, translated: str) -> None:
+    # Template strings are stable until the chat script is edited.
+    await _redis.set(_translation_key(text, lang), translated)
+
+
+async def invalidate_translations(texts: list[str]) -> None:
+    keys = [_translation_key(t, lang) for t in texts if t for lang in _SUPPORTED_LANGS]
+    if keys:
+        await _redis.delete(*keys)
+
+
 async def set_chat_steps(subdomain: str = "", link_id: str = "",
                          steps: list = None, ttl: int = 0) -> None:
+    old = await get_chat_steps(subdomain, link_id)
+    old_texts = []
+    for s in old:
+        if s.get("text"):
+            old_texts.append(s["text"])
+        if s.get("button"):
+            old_texts.append(s["button"])
+    await invalidate_translations(old_texts)
+
     val = json.dumps(steps or [], ensure_ascii=False)
     if ttl:
         await _redis.set(_GLOBAL_STEPS_KEY, val, ex=ttl)
