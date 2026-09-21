@@ -4,6 +4,7 @@ from typing import Sequence
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from db.crud.users import get_or_create_user
 from db.models import Domain
 
 
@@ -52,6 +53,7 @@ async def assign_domain_to_user(
     if existing.scalar_one_or_none() is not None:
         return None  # user already has a domain
 
+    await get_or_create_user(session, user_id, autocommit=False)
     domain.user_id = user_id
     if autocommit:
         await session.commit()
@@ -153,6 +155,7 @@ async def reassign_domain(
     for old in others.scalars().all():
         old.user_id = None
 
+    await get_or_create_user(session, user_id, autocommit=False)
     domain.user_id = user_id
     if autocommit:
         await session.commit()
