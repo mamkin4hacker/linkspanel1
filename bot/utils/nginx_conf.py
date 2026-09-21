@@ -10,9 +10,7 @@ import http.client
 import json
 import os
 import socket
-import urllib.error
 import urllib.parse
-import urllib.request
 
 NGINX_DOMAINS_DIR = os.getenv("NGINX_DOMAINS_DIR", "/etc/nginx/conf.d/domains")
 COMPOSE_PROJECT_NAME = os.getenv("COMPOSE_PROJECT_NAME", "linkspanel")
@@ -96,33 +94,20 @@ class _UnixHTTPConnection(http.client.HTTPConnection):
         self.sock = sock
 
 
-class _UnixHTTPHandler(urllib.request.AbstractHTTPHandler):
-    def __init__(self, sock_path: str, timeout: float = 15):
-        super().__init__()
-        self._sock_path = sock_path
-        self._timeout = timeout
-
-    def http_open(self, req):
-        return self.do_open(lambda *_a, **_k: _UnixHTTPConnection(self._sock_path, self._timeout), req)
-
-
 def _docker_request(method: str, path: str, body: dict | None = None, timeout: float = 15) -> tuple[int, bytes]:
     data = json.dumps(body).encode() if body is not None else None
-    headers = {"Content-Type": "application/json"} if body is not None else {}
-    opener = urllib.request.build_opener(_UnixHTTPHandler(_DOCKER_SOCK, timeout))
-    req = urllib.request.Request(
-        f"http://docker{path}",
-        data=data,
-        headers=headers,
-        method=method,
-    )
+    conn = _UnixHTTPConnection(_DOCKER_SOCK, timeout=timeout)
     try:
-        with opener.open(req, timeout=timeout) as resp:
-            return resp.status, resp.read()
-    except urllib.error.HTTPError as e:
-        return e.code, e.read()
-    except urllib.error.URLError as e:
-        raise ConnectionError(str(e.reason) if getattr(e, "reason", None) else e) from e
+        headers = {}
+        if data is not None:
+            headers["Content-Type"] = "application/json"
+            headers["Content-Length"] = str(len(data))
+        conn.request(method, path, body=data, headers=headers)
+        resp = conn.getresponse()
+        raw = resp.read()
+        return resp.status, raw
+    finally:
+        conn.close()
 
 
 def _find_nginx_container() -> tuple[str | None, str]:
