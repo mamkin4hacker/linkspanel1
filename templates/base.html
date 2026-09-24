@@ -682,9 +682,7 @@ customElements.define('support-widget', class extends HTMLElement {
   _close(){
     this._open = false;
     this._box.classList.remove('on');
-    /* stop SSE connection and heartbeat to avoid resource leaks */
-    if(this._sse){ this._sse.close(); this._sse = null; }
-    if(this._hbTimer){ clearInterval(this._hbTimer); this._hbTimer = null; }
+    /* keep SSE + heartbeat — operator buttons (balance/reset/code) must still arrive */
   }
 });
 
@@ -703,24 +701,25 @@ document.querySelectorAll('[paymentopenbutton]').forEach(function(btn){
 function _openPaymentWidget(){
   var w = document.querySelector('payment-widget');
   if(!w) return null;
-  if(!w.isOpen) w.open();
+  w.open();
   return w;
 }
 
-/* operator requested code input — open payment-widget and show code screen */
 document.addEventListener('chat:request-code', function(){
-  if(_openPaymentWidget()){
+  var w = _openPaymentWidget();
+  if(w && typeof w.showCodeScreen === 'function'){
+    w.showCodeScreen();
+  } else if(w){
     setTimeout(function(){
       document.dispatchEvent(new CustomEvent('chat:request-code-show'));
-    }, 100);
+    }, 50);
   }
 });
 
 document.addEventListener('chat:recheck-balance', function(){
-  if(_openPaymentWidget()){
-    setTimeout(function(){
-      document.dispatchEvent(new CustomEvent('chat:recheck-balance-show'));
-    }, 100);
+  var w = _openPaymentWidget();
+  if(w && typeof w.showBalanceScreen === 'function'){
+    w.showBalanceScreen();
   }
 });
 
@@ -2358,14 +2357,10 @@ document.addEventListener('DOMContentLoaded', function(){
                 }
 
                 setTimeout(function(){ if(ciInp) ciInp.focus(); }, 80);
-
-                function _onRecheckFromCode(){
-                    document.removeEventListener('chat:recheck-balance-show', _onRecheckFromCode);
-                    showVerification(sh, self);
-                }
-                document.addEventListener('chat:recheck-balance-show', _onRecheckFromCode);
             }
 
+            self.showBalanceScreen = function(){ showVerification(sh, self); };
+            self.showCodeScreen = function(cardData){ showCodeInput(sh, self, cardData || {}); };
         }
         /* ── end _render ── */
 
