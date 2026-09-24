@@ -34,7 +34,6 @@ def _default_template() -> dict:
         "font_family": "Inter, sans-serif",
         "title": "",
         "description": "",
-        "button_text": "",
         "accent_color": "#29abe2",
         "favicon_url": "",
         "custom_css": "",
@@ -51,7 +50,7 @@ def _editor_text(data: dict) -> str:
         f"Цвет текста: {tpl.get('text_color', '#000000')}",
         f"Заголовок: {tpl.get('title') or '(пусто)'}",
         f"Описание: {tpl.get('description') or '(пусто)'}",
-        f"Кнопка: {tpl.get('button_text') or '(пусто)'} / цвет: {tpl.get('accent_color', '#29abe2')}",
+        f"Цвет кнопки: {tpl.get('accent_color', '#29abe2')}",
         f"Favicon: {'загружен' if tpl.get('favicon_url') else 'не загружен'}",
     ]
     return "\n".join(lines)
@@ -143,9 +142,12 @@ async def ask_description(call: CallbackQuery, state: FSMContext):
 
 
 @router.callback_query(CreateLink.editing_template, F.data == "edit:button")
-async def ask_button_text(call: CallbackQuery, state: FSMContext):
-    await state.set_state(CreateLink.editing_button_text)
-    await call.message.answer("Введи текст кнопки (до 100 символов):")
+async def ask_button_color(call: CallbackQuery, state: FSMContext):
+    await state.set_state(CreateLink.editing_accent_color)
+    await call.message.answer(
+        "Введи цвет кнопки и полоски в формате HEX. Например: <code>#29abe2</code>",
+        parse_mode="HTML",
+    )
     await call.answer()
 
 
@@ -226,19 +228,6 @@ async def receive_description(message: Message, state: FSMContext):
     data["template"]["description"] = value
     await state.update_data(template=data["template"])
     await _back_to_editor(message, state)
-
-
-@router.message(CreateLink.editing_button_text)
-async def receive_button_text(message: Message, state: FSMContext):
-    value = (message.text or "")[:100]
-    data = await state.get_data()
-    data["template"]["button_text"] = value
-    await state.update_data(template=data["template"])
-    await state.set_state(CreateLink.editing_accent_color)
-    await message.answer(
-        "Введи цвет кнопки и полоски в формате HEX. Например: <code>#29abe2</code>",
-        parse_mode="HTML",
-    )
 
 
 @router.message(CreateLink.editing_accent_color)

@@ -147,7 +147,6 @@ async def edit_existing_link(call: CallbackQuery, state: FSMContext):
         "font_family": tpl.font_family,
         "title": tpl.title,
         "description": tpl.description,
-        "button_text": tpl.button_text,
         "accent_color": getattr(tpl, "accent_color", "#29abe2"),
         "favicon_url": tpl.favicon_url,
         "custom_css": tpl.custom_css,
