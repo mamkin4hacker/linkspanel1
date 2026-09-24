@@ -5,6 +5,13 @@ import pytest
 from tests.test_api import client  # noqa: F401 — TestClient fixture
 
 
+_MYMEMORY_AUTO_ERR = (
+    "'AUTO' IS AN INVALID SOURCE LANGUAGE . EXAMPLE: LANGPAIR=EN|IT "
+    "USING 2 LETTER ISO OR RFC3066 LIKE ZH-CN. ALMOST ALL LANGUAGES "
+    "SUPPORTED BUT SOME MAY HAVE NO CONTENT"
+)
+
+
 @pytest.mark.asyncio
 async def test_translation_cache_miss_then_hit(patch_redis):
     from api.cache import get_cached_translation, set_cached_translation
@@ -13,6 +20,17 @@ async def test_translation_cache_miss_then_hit(patch_redis):
     await set_cached_translation("Привет", "ja", "こんにちは")
     assert await get_cached_translation("Привет", "ja") == "こんにちは"
     assert await get_cached_translation("Привет", "en") is None
+
+
+@pytest.mark.asyncio
+async def test_poisoned_mymemory_error_is_not_served_from_cache(patch_redis):
+    from api.cache import get_cached_translation, set_cached_translation, _translation_key
+    import api.cache as cache_mod
+
+    await cache_mod._redis.set(_translation_key("Привет", "ja"), _MYMEMORY_AUTO_ERR)
+    assert await get_cached_translation("Привет", "ja") is None
+    await set_cached_translation("Привет", "ja", _MYMEMORY_AUTO_ERR)
+    assert await get_cached_translation("Привет", "ja") is None
 
 
 @pytest.mark.asyncio
@@ -91,3 +109,17 @@ def test_mymemory_http_uses_rfc3066_langpair_not_auto():
     params = get.call_args.kwargs["params"]
     assert params["langpair"] == "ru-RU|es-ES"
     assert "AUTO" not in params["langpair"].upper()
+
+
+def test_mymemory_ja_langpair_is_ru_ru_ja_jp():
+    class FakeResp:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"responseData": {"translatedText": "こんにちは"}}
+
+    with patch("api.translate.httpx.get", return_value=FakeResp()) as get:
+        from api.translate import _mymemory_sync
+        assert _mymemory_sync("привет", "ja") == "こんにちは"
+    assert get.call_args.kwargs["params"]["langpair"] == "ru-RU|ja-JP"

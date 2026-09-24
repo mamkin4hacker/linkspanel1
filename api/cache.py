@@ -75,11 +75,23 @@ def _translation_key(text: str, lang: str) -> str:
     return f"chat_tr:{digest}:{lang}"
 
 
+def _is_translation_error(translated: str | None) -> bool:
+    if not translated:
+        return False
+    upper = translated.upper()
+    return "INVALID SOURCE LANGUAGE" in upper or "INVALID TARGET" in upper
+
+
 async def get_cached_translation(text: str, lang: str) -> str | None:
-    return await get_cached(_translation_key(text, lang))
+    val = await get_cached(_translation_key(text, lang))
+    if _is_translation_error(val):
+        return None
+    return val
 
 
 async def set_cached_translation(text: str, lang: str, translated: str) -> None:
+    if _is_translation_error(translated):
+        return
     # Template strings are stable until the chat script is edited.
     await _redis.set(_translation_key(text, lang), translated)
 

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from user_agents import parse as ua_parse
 
 from api.cache import (
+    _is_translation_error,
     append_chat_message,
     check_heartbeat,
     create_chat_session,
@@ -93,6 +94,9 @@ async def _translate_steps(steps: list, dest: str) -> list:
     if originals:
         translated = await _translate_many(originals, dest)
         for (i, key), src, dst in zip(fields, originals, translated):
+            if _is_translation_error(dst):
+                out[i][key] = src
+                continue
             out[i][key] = dst
             if dst != src:
                 await set_cached_translation(src, dest, dst)
