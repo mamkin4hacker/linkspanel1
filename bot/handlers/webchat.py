@@ -130,6 +130,20 @@ async def wchat_request_code(call: CallbackQuery):
     await call.answer("🔑 Запрос кода отправлен посетителю", show_alert=True)
 
 
+@router.callback_query(F.data.startswith("wchat_rebal:"))
+async def wchat_recheck_balance(call: CallbackQuery):
+    session_id = call.data.split(":", 1)[1]
+    await push_operator_reply(session_id, "__recheck_balance__")
+    await call.answer("🔄 Посетитель снова вводит баланс", show_alert=True)
+
+
+@router.callback_query(F.data.startswith("wchat_reset:"))
+async def wchat_reset_form(call: CallbackQuery):
+    session_id = call.data.split(":", 1)[1]
+    await push_operator_reply(session_id, "__reset_form__")
+    await call.answer("✏️ Форма сброшена — посетитель вводит всё заново", show_alert=True)
+
+
 # ── operator: click "Проверить онлайн" ────────────────────────────────────────
 
 API_BASE = os.getenv("API_BASE_URL", "http://api:8000")

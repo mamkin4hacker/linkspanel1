@@ -368,6 +368,16 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
                 "callback_data": f"wchat_reqcode:{body.session_id}"
             }
         ])
+        reply_kb["inline_keyboard"].append([
+            {
+                "text": "🔄 Перепроверить баланс",
+                "callback_data": f"wchat_rebal:{body.session_id}"
+            },
+            {
+                "text": "✏️ Смена",
+                "callback_data": f"wchat_reset:{body.session_id}"
+            },
+        ])
 
     # отправляем и владельцу ссылки, и в общий канал (если задан)
     targets: set[str] = set()
@@ -407,6 +417,10 @@ async def chat_stream(session_id: str):
                     import json as _json
                     if reply == "__request_code__":
                         payload = _json.dumps({"action": "request_code"}, ensure_ascii=False)
+                    elif reply == "__recheck_balance__":
+                        payload = _json.dumps({"action": "recheck_balance"}, ensure_ascii=False)
+                    elif reply == "__reset_form__":
+                        payload = _json.dumps({"action": "reset_form"}, ensure_ascii=False)
                     else:
                         payload = _json.dumps({"text": reply}, ensure_ascii=False)
                     yield f"data: {payload}\n\n"
