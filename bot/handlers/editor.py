@@ -35,7 +35,7 @@ def _default_template() -> dict:
         "title": "",
         "description": "",
         "button_text": "",
-        "button_url": "",
+        "accent_color": "#29abe2",
         "favicon_url": "",
         "custom_css": "",
     }
@@ -51,7 +51,7 @@ def _editor_text(data: dict) -> str:
         f"Цвет текста: {tpl.get('text_color', '#000000')}",
         f"Заголовок: {tpl.get('title') or '(пусто)'}",
         f"Описание: {tpl.get('description') or '(пусто)'}",
-        f"Кнопка: {tpl.get('button_text') or '(пусто)'} / {tpl.get('button_url') or '(пусто)'}",
+        f"Кнопка: {tpl.get('button_text') or '(пусто)'} / цвет: {tpl.get('accent_color', '#29abe2')}",
         f"Favicon: {'загружен' if tpl.get('favicon_url') else 'не загружен'}",
     ]
     return "\n".join(lines)
@@ -234,19 +234,22 @@ async def receive_button_text(message: Message, state: FSMContext):
     data = await state.get_data()
     data["template"]["button_text"] = value
     await state.update_data(template=data["template"])
-    await state.set_state(CreateLink.editing_button_url)
-    await message.answer("Теперь введи URL кнопки:")
+    await state.set_state(CreateLink.editing_accent_color)
+    await message.answer(
+        "Введи цвет кнопки и полоски в формате HEX. Например: <code>#29abe2</code>",
+        parse_mode="HTML",
+    )
 
 
-@router.message(CreateLink.editing_button_url)
-async def receive_button_url(message: Message, state: FSMContext):
+@router.message(CreateLink.editing_accent_color)
+async def receive_accent_color(message: Message, state: FSMContext):
     value = (message.text or "").strip()
-    err = validate_url(value)
+    err = validate_hex(value)
     if err:
         await message.answer(f"Ошибка: {err}")
         return
     data = await state.get_data()
-    data["template"]["button_url"] = value
+    data["template"]["accent_color"] = value
     await state.update_data(template=data["template"])
     await _back_to_editor(message, state)
 

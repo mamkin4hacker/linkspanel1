@@ -49,6 +49,7 @@ class Template(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     button_text: Mapped[str] = mapped_column(String(100), default="")
     button_url: Mapped[str] = mapped_column(Text, default="")
+    accent_color: Mapped[str] = mapped_column(String(7), default="#29abe2")
     favicon_url: Mapped[str] = mapped_column(Text, default="")
     custom_css: Mapped[str] = mapped_column(Text, default="")
 

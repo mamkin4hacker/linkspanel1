@@ -9,7 +9,7 @@ class CreateLink(StatesGroup):
     editing_title = State()
     editing_description = State()
     editing_button_text = State()
-    editing_button_url = State()
+    editing_accent_color = State()
     editing_favicon = State()
     editing_custom_css = State()
 
