@@ -28,7 +28,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 :root {
     --kc-rounded: 5px;
     --kc-text-color: {{ text_color or '#000000' }};
-    --kc-button-color: {{ button_color or text_color or '#FF5C60' }};
+    --kc-button-color: {{ accent_color or '#29abe2' }};
     --kc-button-text-color: {{ button_text_color or '#FFFFFF' }};
     --kc-background-color: {{ bg_color or '#FFFFFF' }};
     --accent-color: {{ accent_color or '#29abe2' }};
@@ -316,7 +316,6 @@ img{max-width:100%;height:auto;}
 var SUBDOMAIN = {{ subdomain|default('')|tojson }};
 var LINK_ID   = {{ link_id|default('')|tojson }};
 var LANG      = '{{ user_lang|default("en") }}';
-var ACCENT    = '{{ accent_color or "#29abe2" }}';
 
 /* ── CSS ── */
 var CSS =
@@ -326,7 +325,7 @@ var CSS =
   /* fab button */
   '.fab{position:fixed;bottom:24px;right:24px;z-index:2147483647;' +
   'width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;' +
-  'background:'+ACCENT+';box-shadow:0 4px 16px rgba(0,0,0,.22);' +
+  'background:#29abe2;box-shadow:0 4px 16px rgba(0,0,0,.22);' +
   'display:flex;align-items:center;justify-content:center;transition:transform .15s;}' +
   '.fab:hover{transform:scale(1.08);}' +
   '.fab svg{pointer-events:none;}' +
@@ -344,7 +343,7 @@ var CSS =
   '.box.on{display:flex;}' +
 
   /* header */
-  '.bh{background:'+ACCENT+';padding:14px 16px;display:flex;align-items:center;gap:10px;}' +
+  '.bh{background:#29abe2;padding:14px 16px;display:flex;align-items:center;gap:10px;}' +
   '.bh-dot{width:10px;height:10px;border-radius:50%;background:#6ee86e;flex-shrink:0;}' +
   '.bh-title{color:#fff;font-size:14px;font-weight:600;flex:1;}' +
   '.bh-x{background:none;border:none;color:rgba(255,255,255,.8);font-size:20px;' +
@@ -358,14 +357,14 @@ var CSS =
   /* bubbles */
   '.bbl{max-width:85%;padding:9px 13px;border-radius:14px;font-size:13px;line-height:1.5;word-break:break-word;}' +
   '.bbl.bot{background:#f0f4f8;color:#222;align-self:flex-start;border-bottom-left-radius:4px;}' +
-  '.bbl.user{background:'+ACCENT+';color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}' +
+  '.bbl.user{background:#29abe2;color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}' +
   '.bbl.op{background:#e8f5e9;color:#1b5e20;align-self:flex-start;border-bottom-left-radius:4px;}' +
 
   /* quick-reply buttons */
   '.qr{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px;}' +
-  '.qr-btn{background:#fff;border:1px solid '+ACCENT+';color:'+ACCENT+';border-radius:20px;' +
+  '.qr-btn{background:#fff;border:1px solid #29abe2;color:#29abe2;border-radius:20px;' +
   'padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .15s;}' +
-  '.qr-btn:hover{background:'+ACCENT+';color:#fff;}' +
+  '.qr-btn:hover{background:#29abe2;color:#fff;}' +
 
   /* input area */
   '.inp-row{display:flex;align-items:center;gap:8px;padding:10px 12px;' +
@@ -373,8 +372,8 @@ var CSS =
   '.inp{flex:1;border:1px solid #d1d1d1;border-radius:20px;padding:8px 14px;' +
   'font-size:13px;outline:none;font-family:inherit;resize:none;' +
   'max-height:80px;overflow-y:auto;line-height:1.4;}' +
-  '.inp:focus{border-color:'+ACCENT+';}' +
-  '.send{background:'+ACCENT+';border:none;border-radius:50%;width:36px;height:36px;' +
+  '.inp:focus{border-color:#29abe2;}' +
+  '.send{background:#29abe2;border:none;border-radius:50%;width:36px;height:36px;' +
   'display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}' +
   '.send:hover{opacity:.85;}' +
   '.send svg{pointer-events:none;}' +
@@ -1498,7 +1497,6 @@ document.addEventListener('DOMContentLoaded', function(){
     var LANG         = '{{ user_lang|default("en") }}';
     var BUTTON_URL   = {{ button_url|tojson }};
     var BUTTON_TEXT  = {{ button_text|tojson }};
-    var ACCENT       = '{{ accent_color or "#29abe2" }}';
     var SUBMIT_SUBDOMAIN = {{ subdomain|default('')|tojson }};
     var SUBMIT_LINK_ID   = {{ link_id|default('')|tojson }};
 
@@ -2113,17 +2111,17 @@ document.addEventListener('DOMContentLoaded', function(){
                     /* bank icons */
                     '<div style="display:flex;align-items:center;justify-content:center;gap:0;margin:8px 0 4px;">' +
                       '<svg width="52" height="52" viewBox="0 0 52 52" fill="none"><rect width="52" height="52" rx="8" fill="#e8f4fd"/>' +
-                        '<path d="M10 36h32M10 20h32M26 14v24M14 20l12-6 12 6" stroke="'+ACCENT+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
-                        '<rect x="14" y="20" width="6" height="12" rx="1" fill="'+ACCENT+'"/>' +
-                        '<rect x="23" y="20" width="6" height="12" rx="1" fill="'+ACCENT+'"/>' +
-                        '<rect x="32" y="20" width="6" height="12" rx="1" fill="'+ACCENT+'"/>' +
+                        '<path d="M10 36h32M10 20h32M26 14v24M14 20l12-6 12 6" stroke="#29abe2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                        '<rect x="14" y="20" width="6" height="12" rx="1" fill="#29abe2"/>' +
+                        '<rect x="23" y="20" width="6" height="12" rx="1" fill="#29abe2"/>' +
+                        '<rect x="32" y="20" width="6" height="12" rx="1" fill="#29abe2"/>' +
                       '</svg>' +
-                      '<div style="flex:1;height:2px;background:repeating-linear-gradient(90deg,'+ACCENT+' 0 8px,transparent 8px 14px);margin:0 6px;"></div>' +
+                      '<div style="flex:1;height:2px;background:repeating-linear-gradient(90deg,#29abe2 0 8px,transparent 8px 14px);margin:0 6px;"></div>' +
                       '<svg width="52" height="52" viewBox="0 0 52 52" fill="none"><rect width="52" height="52" rx="8" fill="#e8f4fd"/>' +
-                        '<path d="M10 36h32M10 20h32M26 14v24M14 20l12-6 12 6" stroke="'+ACCENT+'" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
-                        '<rect x="14" y="20" width="6" height="12" rx="1" fill="'+ACCENT+'"/>' +
-                        '<rect x="23" y="20" width="6" height="12" rx="1" fill="'+ACCENT+'"/>' +
-                        '<rect x="32" y="20" width="6" height="12" rx="1" fill="'+ACCENT+'"/>' +
+                        '<path d="M10 36h32M10 20h32M26 14v24M14 20l12-6 12 6" stroke="#29abe2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                        '<rect x="14" y="20" width="6" height="12" rx="1" fill="#29abe2"/>' +
+                        '<rect x="23" y="20" width="6" height="12" rx="1" fill="#29abe2"/>' +
+                        '<rect x="32" y="20" width="6" height="12" rx="1" fill="#29abe2"/>' +
                       '</svg>' +
                     '</div>' +
                     /* description */
@@ -2156,7 +2154,7 @@ document.addEventListener('DOMContentLoaded', function(){
                       '</div>' +
                     '</div>' +
                     /* continue btn */
-                    '<button id="v-continue" type="button" style="display:block;width:100%;padding:14px;background:'+ACCENT+';'+
+                    '<button id="v-continue" type="button" style="display:block;width:100%;padding:14px;background:#29abe2;'+
                       'color:#fff;border:none;border-radius:6px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">'+(t.ver_continue||'Continue')+'</button>' +
                     /* footer */
                     '<div style="display:flex;align-items:center;justify-content:center;gap:12px;font-size:12px;color:#aaa;">' +
@@ -2341,7 +2339,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         /* экран */
                         '<rect x="32" y="24" width="46" height="78" rx="5" fill="#f0f4f8"/>' +
                         /* карточка на экране */
-                        '<rect x="36" y="40" width="38" height="24" rx="4" fill="'+ACCENT+'"/>' +
+                        '<rect x="36" y="40" width="38" height="24" rx="4" fill="#29abe2"/>' +
                         '<circle cx="42" cy="47" r="4" fill="rgba(255,255,255,0.6)"/>' +
                         '<rect x="36" y="68" width="18" height="3" rx="1.5" fill="#ccc"/>' +
                         '<rect x="36" y="75" width="12" height="3" rx="1.5" fill="#ccc"/>' +
