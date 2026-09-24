@@ -456,6 +456,12 @@ customElements.define('support-widget', class extends HTMLElement {
     this._sessionId = null;
     this._sse    = null;
     this._steps  = [];
+    this._audioCtx = null;
+
+    /* Browsers allow sound only after the visitor interacts with the page. */
+    var unlockAudio = ()=> this._unlockAudio();
+    document.addEventListener('pointerdown', unlockAudio, {once:true});
+    document.addEventListener('keydown', unlockAudio, {once:true});
 
     sh.getElementById('fab').addEventListener('click',  ()=> this._toggle());
     sh.getElementById('bh-x').addEventListener('click', ()=> this._close());
@@ -509,6 +515,43 @@ customElements.define('support-widget', class extends HTMLElement {
         self._fireTrigger(detail);
       }
     });
+  }
+
+  _unlockAudio(){
+    var AudioContext = window.AudioContext || window.webkitAudioContext;
+    if(!AudioContext) return;
+    try {
+      if(!this._audioCtx) this._audioCtx = new AudioContext();
+      if(this._audioCtx.state === 'suspended'){
+        var resumed = this._audioCtx.resume();
+        if(resumed && resumed.catch) resumed.catch(function(){});
+      }
+    } catch(_){}
+  }
+
+  _playNotificationSound(){
+    var ctx = this._audioCtx;
+    if(!ctx || ctx.state !== 'running') return;
+    try {
+      var now = ctx.currentTime;
+      var oscillator = ctx.createOscillator();
+      var gain = ctx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(740, now);
+      oscillator.frequency.exponentialRampToValueAtTime(988, now + 0.12);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.18);
+    } catch(_){}
+  }
+
+  _notifyIncoming(){
+    this._openChat();
+    this._playNotificationSound();
   }
 
   _startSSE(){
@@ -622,6 +665,9 @@ customElements.define('support-widget', class extends HTMLElement {
       this._msgs.removeChild(this._msgs.firstChild);
     }
     this._msgs.scrollTop = this._msgs.scrollHeight;
+    if(type === 'bot' || type === 'op'){
+      this._notifyIncoming();
+    }
   }
 
   async _postTrigger(trigger, text, extra){

@@ -56,6 +56,15 @@ class TestRenderPage:
         "custom_css": "",
     }
 
+    def test_support_widget_opens_and_sounds_for_incoming_messages(self):
+        html = render_page(self.BASE_CONFIG)
+
+        assert "if(type === 'bot' || type === 'op')" in html
+        assert "this._notifyIncoming();" in html
+        assert "this._openChat();" in html
+        assert "window.AudioContext || window.webkitAudioContext" in html
+        assert "createOscillator()" in html
+
     def test_renders_html(self):
         html = render_page(self.BASE_CONFIG)
         assert "<!DOCTYPE html>" in html
