@@ -37,12 +37,12 @@ async def test_poisoned_mymemory_error_is_not_served_from_cache(patch_redis):
 async def test_set_chat_steps_invalidates_translation_cache(patch_redis):
     from api.cache import get_cached_translation, set_cached_translation, set_chat_steps
 
-    await set_chat_steps(steps=[
+    await set_chat_steps(user_id=1, steps=[
         {"step": 1, "trigger": "open", "text": "Старый текст", "button": "Кнопка"},
     ])
     await set_cached_translation("Старый текст", "ja", "古い")
     await set_cached_translation("Другой", "ja", "別")
-    await set_chat_steps(steps=[
+    await set_chat_steps(user_id=1, steps=[
         {"step": 1, "trigger": "open", "text": "Новый текст", "button": "Ок"},
     ])
     assert await get_cached_translation("Старый текст", "ja") is None

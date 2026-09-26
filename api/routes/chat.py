@@ -216,7 +216,10 @@ async def start_session(body: StartSession, request: Request) -> JSONResponse:
 
 @router.get("/steps")
 async def get_steps(subdomain: str, link_id: str, lang: str = "ru") -> JSONResponse:
-    steps = await get_chat_steps(subdomain, link_id)
+    _, owner_id = await _resolve_owner(subdomain, link_id)
+    # if link not found fall back to a sentinel user_id=0 which has no stored
+    # steps — get_chat_steps returns _DEFAULT_STEPS in that case
+    steps = await get_chat_steps(user_id=owner_id or 0)
     if lang and lang != "ru":
         steps = await _translate_steps(steps, dest=lang)
     return JSONResponse(steps)

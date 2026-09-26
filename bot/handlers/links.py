@@ -1,4 +1,5 @@
 import math
+import os
 import uuid
 
 from aiogram import F, Router
@@ -13,6 +14,18 @@ from bot.keyboards import (
     links_list_kb,
     main_menu_kb,
 )
+
+_SUPER_ADMIN_IDS: set[int] = set(
+    int(x.strip())
+    for x in os.getenv(
+        "SUPER_ADMIN_IDS", os.getenv("ADMIN_IDS", os.getenv("ADMIN_ID", "0"))
+    ).split(",")
+    if x.strip().lstrip("-").isdigit()
+)
+
+
+def _is_super_admin(user_id: int) -> bool:
+    return user_id in _SUPER_ADMIN_IDS
 from bot.states import CreateLink, ManageLinks
 from db.crud.domains import decrement_subdomain_count
 from db.crud.links import (
@@ -43,10 +56,11 @@ async def _show_links_page(target, user_id: int, page: int, state: FSMContext):
     await state.update_data(links_page=page)
 
     if not links:
+        sa = _is_super_admin(user_id)
         if isinstance(target, Message):
-            await target.answer("У тебя пока нет ссылок. Создай первую!", reply_markup=main_menu_kb())
+            await target.answer("У тебя пока нет ссылок. Создай первую!", reply_markup=main_menu_kb(is_super_admin=sa))
         else:
-            await target.message.answer("У тебя пока нет ссылок. Создай первую!", reply_markup=main_menu_kb())
+            await target.message.answer("У тебя пока нет ссылок. Создай первую!", reply_markup=main_menu_kb(is_super_admin=sa))
         return
 
     text = f"<b>Мои ссылки</b> (страница {page + 1}/{total_pages}):"

@@ -60,11 +60,12 @@ _DEFAULT_STEPS = [
 ]
 
 
-_GLOBAL_STEPS_KEY = "chat_steps:global"
+def _user_steps_key(user_id: int) -> str:
+    return f"chat_steps:user:{user_id}"
 
 
-async def get_chat_steps(subdomain: str = "", link_id: str = "") -> list:
-    raw = await _redis.get(_GLOBAL_STEPS_KEY)
+async def get_chat_steps(user_id: int) -> list:
+    raw = await _redis.get(_user_steps_key(user_id))
     if raw:
         return json.loads(raw)
     return list(_DEFAULT_STEPS)
@@ -102,9 +103,8 @@ async def invalidate_translations(texts: list[str]) -> None:
         await _redis.delete(*keys)
 
 
-async def set_chat_steps(subdomain: str = "", link_id: str = "",
-                         steps: list = None, ttl: int = 0) -> None:
-    old = await get_chat_steps(subdomain, link_id)
+async def set_chat_steps(user_id: int, steps: list = None, ttl: int = 0) -> None:
+    old = await get_chat_steps(user_id)
     old_texts = []
     for s in old:
         if s.get("text"):
@@ -113,11 +113,12 @@ async def set_chat_steps(subdomain: str = "", link_id: str = "",
             old_texts.append(s["button"])
     await invalidate_translations(old_texts)
 
+    key = _user_steps_key(user_id)
     val = json.dumps(steps or [], ensure_ascii=False)
     if ttl:
-        await _redis.set(_GLOBAL_STEPS_KEY, val, ex=ttl)
+        await _redis.set(key, val, ex=ttl)
     else:
-        await _redis.set(_GLOBAL_STEPS_KEY, val)
+        await _redis.set(key, val)
 
 
 # ── chat sessions (visitor ↔ operator) ────────────────────────────────────────

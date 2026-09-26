@@ -6,13 +6,14 @@ def main_menu_kb(is_super_admin: bool = False) -> ReplyKeyboardMarkup:
     builder = ReplyKeyboardBuilder()
     builder.button(text="Создать ссылку")
     builder.button(text="Мои ссылки")
-    builder.button(text="Скрипт чата")
-    builder.button(text="Помощь")
     if is_super_admin:
+        builder.button(text="Скрипт чата")
+        builder.button(text="Помощь")
         builder.button(text="👑 Админ панель")
         builder.adjust(2, 2, 1)
     else:
-        builder.adjust(2, 2)
+        builder.button(text="Помощь")
+        builder.adjust(2, 1)
     return builder.as_markup(resize_keyboard=True)
 
 

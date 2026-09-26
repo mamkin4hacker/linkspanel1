@@ -184,8 +184,10 @@ def _step_detail_text(s: dict) -> str:
 
 @router.message(F.text == "Скрипт чата")
 async def cmd_chat_scripts(message: Message, state: FSMContext):
+    if not is_super_admin(message.from_user.id):
+        return
     await state.clear()
-    steps = await get_chat_steps()
+    steps = await get_chat_steps(user_id=message.from_user.id)
     await message.answer(
         "<b>Скрипт чата</b>\nВыберите шаг для просмотра и редактирования:",
         reply_markup=chat_steps_kb(steps),
@@ -199,7 +201,7 @@ async def cmd_chat_scripts(message: Message, state: FSMContext):
 async def cstep_view(call: CallbackQuery, state: FSMContext):
     await state.clear()
     step_num = int(call.data.split(":")[2])
-    steps = await get_chat_steps()
+    steps = await get_chat_steps(user_id=call.from_user.id)
     s = next((x for x in steps if x["step"] == step_num), None)
     if not s:
         await call.answer("Шаг не найден.", show_alert=True)
@@ -217,7 +219,7 @@ async def cstep_view(call: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == "cstep:back")
 async def cstep_back(call: CallbackQuery, state: FSMContext):
     await state.clear()
-    steps = await get_chat_steps()
+    steps = await get_chat_steps(user_id=call.from_user.id)
     await call.message.edit_text(
         "<b>Скрипт чата</b>\nВыберите шаг для просмотра и редактирования:",
         reply_markup=chat_steps_kb(steps),
@@ -264,7 +266,7 @@ async def cstep_receive_text(message: Message, state: FSMContext):
     step_num = data.get("editing_step")
     msg_id   = data.get("editing_msg_id")
 
-    steps = await get_chat_steps()
+    steps = await get_chat_steps(user_id=message.from_user.id)
     updated = False
     for s in steps:
         if s["step"] == step_num:
@@ -277,7 +279,7 @@ async def cstep_receive_text(message: Message, state: FSMContext):
         await message.answer("Шаг не найден.")
         return
 
-    await set_chat_steps(steps=steps)
+    await set_chat_steps(user_id=message.from_user.id, steps=steps)
     s = next(x for x in steps if x["step"] == step_num)
 
     await message.delete()
@@ -305,7 +307,7 @@ async def cstep_receive_btn(message: Message, state: FSMContext):
     step_num = data.get("editing_step")
     msg_id   = data.get("editing_msg_id")
 
-    steps = await get_chat_steps()
+    steps = await get_chat_steps(user_id=message.from_user.id)
     updated = False
     for s in steps:
         if s["step"] == step_num:
@@ -318,7 +320,7 @@ async def cstep_receive_btn(message: Message, state: FSMContext):
         await message.answer("Шаг не найден.")
         return
 
-    await set_chat_steps(steps=steps)
+    await set_chat_steps(user_id=message.from_user.id, steps=steps)
     s = next(x for x in steps if x["step"] == step_num)
 
     await message.delete()
