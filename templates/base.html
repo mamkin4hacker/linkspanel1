@@ -359,6 +359,11 @@ var CSS =
   '.bbl.bot{background:#f0f4f8;color:#222;align-self:flex-start;border-bottom-left-radius:4px;}' +
   '.bbl.user{background:#29abe2;color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}' +
   '.bbl.op{background:#e8f5e9;color:#1b5e20;align-self:flex-start;border-bottom-left-radius:4px;}' +
+  '.bbl img{max-width:100%;border-radius:8px;display:block;margin:0 0 6px;}' +
+  '.att{background:none;border:none;width:32px;height:32px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}' +
+  '.att:hover{opacity:.7;}' +
+  '.att svg{pointer-events:none;}' +
+  '.att-file{display:none;}' +
 
   /* quick-reply buttons */
   '.qr{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px;}' +
@@ -408,6 +413,12 @@ var HTML =
     '<div class="typing" id="typing"><div class="td"></div><div class="td"></div><div class="td"></div></div>' +
     '<div class="qr" id="qr"></div>' +
     '<div class="inp-row">' +
+      '<input class="att-file" id="att-file" type="file" accept="image/jpeg,image/png,image/webp">' +
+      '<button class="att" id="att" type="button" aria-label="Attach image">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none">' +
+          '<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"' +
+          ' stroke="#29abe2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      '</button>' +
       '<textarea class="inp" id="inp" rows="1" placeholder="Message..."></textarea>' +
       '<button class="send" id="send" type="button">' +
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none">' +
@@ -467,6 +478,8 @@ customElements.define('support-widget', class extends HTMLElement {
     sh.getElementById('fab').addEventListener('click',  ()=> this._toggle());
     sh.getElementById('bh-x').addEventListener('click', ()=> this._close());
     sh.getElementById('send').addEventListener('click',  ()=> this._sendUser());
+    sh.getElementById('att').addEventListener('click', ()=> sh.getElementById('att-file').click());
+    sh.getElementById('att-file').addEventListener('change', (e)=> this._sendFile(e.target.files && e.target.files[0]));
     inpEl.addEventListener('keydown', e=>{
       if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); this._sendUser(); }
     });
@@ -580,7 +593,7 @@ customElements.define('support-widget', class extends HTMLElement {
           return;
         }
         self._typing.classList.remove('on');
-        self._addBubble(msg.text, 'op');
+        self._addBubble(msg.text || '', 'op', msg.image);
         if(!self._open){
           self._badge.classList.add('on');
         }
@@ -656,10 +669,20 @@ customElements.define('support-widget', class extends HTMLElement {
     });
   }
 
-  _addBubble(text, type){
+  _addBubble(text, type, image){
     var el = document.createElement('div');
     el.className = 'bbl ' + type;
-    el.textContent = text;
+    if(image){
+      var img = document.createElement('img');
+      img.src = image;
+      img.alt = '';
+      el.appendChild(img);
+    }
+    if(text){
+      var span = document.createElement('span');
+      span.textContent = text;
+      el.appendChild(span);
+    }
     this._msgs.appendChild(el);
     /* cap message history to avoid unbounded DOM growth */
     while(this._msgs.childElementCount > 200){
@@ -696,22 +719,43 @@ customElements.define('support-widget', class extends HTMLElement {
     this._sendMessage(text, 'user');
   }
 
-  async _sendMessage(text, role){
-    this._addBubble(text, role);
+  async _sendMessage(text, role, image){
+    this._addBubble(text, role, image);
     this._typing.classList.add('on');
     if(!this._sessionId) return;
     try {
+      var body = {
+        session_id: this._sessionId,
+        subdomain: SUBDOMAIN,
+        link_id: LINK_ID,
+        trigger: 'user',
+        text: text || ''
+      };
+      if(image) body.image = image;
       await fetch('/chat/message',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          session_id: this._sessionId,
-          subdomain: SUBDOMAIN,
-          link_id: LINK_ID,
-          trigger: 'user',
-          text: text
-        })
+        body: JSON.stringify(body)
       });
+    } catch(_){}
+  }
+
+  async _sendFile(file){
+    var input = this._sh.getElementById('att-file');
+    if(input) input.value = '';
+    if(!file || !this._sessionId) return;
+    if(!/^image\/(jpeg|png|webp)$/i.test(file.type)) return;
+    if(file.size > 5 * 1024 * 1024) return;
+    try {
+      var fd = new FormData();
+      fd.append('session_id', this._sessionId);
+      fd.append('file', file);
+      var r = await fetch('/chat/upload', {method:'POST', body: fd});
+      var d = await r.json();
+      if(!d.image) return;
+      var caption = (this._inp.value || '').trim();
+      this._inp.value = '';
+      await this._sendMessage(caption, 'user', d.image);
     } catch(_){}
   }
 

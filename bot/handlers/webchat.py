@@ -15,7 +15,9 @@ Chat script editing flow:
   → click step → see text + button label + [Редактировать текст] [Редактировать кнопку]
   → click edit → type new value → saved immediately, step detail refreshed
 """
+import json
 import os
+import uuid
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -84,8 +86,8 @@ async def wchat_click_reply(call: CallbackQuery, state: FSMContext):
     await state.update_data(wchat_session=session_id, wchat_lang=visitor_lang)
 
     await call.message.answer(
-        f"Пишите ответ посетителю страницы.\n"
-        f"Язык посетителя: <code>{visitor_lang}</code>. Ответ будет переведён автоматически.\n"
+        f"Пишите ответ посетителю страницы. Можно отправить картинку.\n"
+        f"Язык посетителя: <code>{visitor_lang}</code>. Текст будет переведён автоматически.\n"
         "Нажмите «Отмена» чтобы прервать.",
         reply_markup=admin_cancel_reply_kb(),
         parse_mode="HTML",
@@ -110,12 +112,31 @@ async def wchat_send_reply(message: Message, state: FSMContext):
         await message.answer("Ошибка: нет активной сессии.", reply_markup=main_menu_kb(is_super_admin=is_super_admin(message.from_user.id)))
         return
 
-    reply_text = message.text or ""
+    reply_text = (message.caption or message.text or "").strip()
     translated = reply_text
-    if visitor_lang and visitor_lang != "ru":
+    if visitor_lang and visitor_lang != "ru" and reply_text:
         translated = await _translate(reply_text, dest=visitor_lang)
 
-    await push_operator_reply(session_id, translated)
+    payload = translated
+    photo = message.photo
+    if photo:
+        largest = photo[-1]
+        static_dir = os.getenv("STATIC_DIR", "/app/static")
+        dest_dir = os.path.join(static_dir, "chat", session_id)
+        os.makedirs(dest_dir, exist_ok=True)
+        filename = f"{uuid.uuid4().hex}.jpg"
+        dest = os.path.join(dest_dir, filename)
+        file = await message.bot.get_file(largest.file_id)
+        await message.bot.download_file(file.file_path, dest)
+        payload = json.dumps(
+            {"text": translated, "image": f"/static/chat/{session_id}/{filename}"},
+            ensure_ascii=False,
+        )
+    elif not reply_text:
+        await message.answer("Отправьте текст или картинку.")
+        return
+
+    await push_operator_reply(session_id, payload)
     await state.clear()
     await message.answer("✅ Ответ отправлен посетителю.", reply_markup=main_menu_kb(is_super_admin=is_super_admin(message.from_user.id)))
 
@@ -184,8 +205,6 @@ def _step_detail_text(s: dict) -> str:
 
 @router.message(F.text == "Скрипт чата")
 async def cmd_chat_scripts(message: Message, state: FSMContext):
-    if not is_super_admin(message.from_user.id):
-        return
     await state.clear()
     steps = await get_chat_steps(user_id=message.from_user.id)
     await message.answer(

