@@ -71,6 +71,66 @@ class TestChatStepsTranslate:
         assert len(batch.await_args.args[0]) == 8
 
 
+def _claude_ok(text: str):
+    class FakeResp:
+        status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"content": [{"type": "text", "text": text}]}
+
+    return FakeResp()
+
+
+@pytest.mark.asyncio
+async def test_translate_uses_claude_messages_api_first(monkeypatch):
+    monkeypatch.setenv("TRANSLATE_API_URL", "https://api.vibecode-claude.online")
+    monkeypatch.setenv("TRANSLATE_API_KEY", "sk-test")
+    monkeypatch.setenv("TRANSLATE_MODEL", "claude-sonnet-5")
+
+    from api.translate import _translate
+
+    with patch("api.translate.httpx.post", return_value=_claude_ok("hola")) as post, \
+         patch("api.translate._google_sync") as google:
+        assert await _translate("привет", "es") == "hola"
+    google.assert_not_called()
+    url = post.call_args.args[0]
+    assert url == "https://api.vibecode-claude.online/v1/messages"
+    headers = post.call_args.kwargs["headers"]
+    assert headers["x-api-key"] == "sk-test"
+    body = post.call_args.kwargs["json"]
+    assert body["model"] == "claude-sonnet-5"
+    assert "only" in body["system"].lower() or "перев" in body["system"].lower()
+    assert "привет" in body["messages"][0]["content"]
+
+
+@pytest.mark.asyncio
+async def test_translate_many_sends_json_array_to_claude(monkeypatch):
+    monkeypatch.setenv("TRANSLATE_API_URL", "https://api.vibecode-claude.online")
+    monkeypatch.setenv("TRANSLATE_API_KEY", "sk-test")
+
+    from api.translate import _translate_many
+
+    with patch("api.translate.httpx.post", return_value=_claude_ok('["A","B"]')):
+        assert await _translate_many(["а", "б"], "en") == ["A", "B"]
+
+
+@pytest.mark.asyncio
+async def test_translate_falls_back_to_google_when_claude_fails(monkeypatch):
+    monkeypatch.setenv("TRANSLATE_API_URL", "https://api.vibecode-claude.online")
+    monkeypatch.setenv("TRANSLATE_API_KEY", "sk-test")
+
+    from api.translate import _translate
+
+    with patch("api.translate.httpx.post", side_effect=RuntimeError("502")), \
+         patch("api.translate._google_sync", return_value="hola") as google, \
+         patch("api.translate._RATE.acquire", new=AsyncMock()):
+        assert await _translate("привет", "es") == "hola"
+    google.assert_called_once()
+
+
 @pytest.mark.asyncio
 async def test_translate_falls_back_to_mymemory_on_rate_limit():
     from api.translate import _translate
@@ -78,7 +138,8 @@ async def test_translate_falls_back_to_mymemory_on_rate_limit():
     def google_fail(text, dest):
         raise RuntimeError("You made too many requests to the server")
 
-    with patch("api.translate._google_sync", side_effect=google_fail), \
+    with patch("api.translate.httpx.post", side_effect=RuntimeError("claude down")), \
+         patch("api.translate._google_sync", side_effect=google_fail), \
          patch("api.translate._mymemory_sync", return_value="hola") as mm, \
          patch("api.translate._RATE.acquire", new=AsyncMock()):
         assert await _translate("привет", "es") == "hola"

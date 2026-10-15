@@ -31,6 +31,7 @@ services:
     env_file: .env
     volumes:
       - ./static:/app/static
+      - ./prompts:/app/prompts:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - /etc/nginx/conf.d/domains:/etc/nginx/conf.d/domains
       - /etc/letsencrypt:/etc/letsencrypt
@@ -48,6 +49,7 @@ services:
     env_file: .env
     volumes:
       - ./static:/app/static
+      - ./prompts:/app/prompts:ro
       - ./templates:/app/templates
       - ./api:/app/api
       - ./db:/app/db

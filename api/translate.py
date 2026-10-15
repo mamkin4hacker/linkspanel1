@@ -1,10 +1,137 @@
 import asyncio
+import json
 import logging
+import os
 import time
+from pathlib import Path
 
 import httpx
 
 logger = logging.getLogger(__name__)
+
+_DEFAULT_SYSTEM = (
+    "You are a translation engine.\n"
+    "Output ONLY the translation. No quotes, no preamble, no notes.\n"
+    "Preserve meaning and tone. Keep HTML, Telegram markup, emoji, numbers, "
+    "URLs and proper names. Keep line breaks.\n"
+    "If the user sends a JSON array of strings, reply with a JSON array of the "
+    "same length and order. No extra keys.\n"
+    "If source and target are the same language, return the original unchanged."
+)
+
+_PROMPT_CACHE: str | None = None
+
+
+def _system_prompt() -> str:
+    global _PROMPT_CACHE
+    if _PROMPT_CACHE is not None:
+        return _PROMPT_CACHE
+    path = os.getenv("TRANSLATE_PROMPT_FILE", "").strip()
+    if not path:
+        default = Path(__file__).resolve().parent.parent / "prompts" / "translate.md"
+        path = str(default) if default.is_file() else ""
+    if path:
+        try:
+            text = Path(path).read_text(encoding="utf-8").strip()
+            if text:
+                _PROMPT_CACHE = text
+                return _PROMPT_CACHE
+        except OSError as exc:
+            logger.warning("Could not read TRANSLATE_PROMPT_FILE %s: %s", path, exc)
+    _PROMPT_CACHE = _DEFAULT_SYSTEM
+    return _PROMPT_CACHE
+
+
+def _claude_configured() -> bool:
+    return bool(os.getenv("TRANSLATE_API_URL", "").strip() and os.getenv("TRANSLATE_API_KEY", "").strip())
+
+
+def _claude_messages_url() -> str:
+    base = os.getenv("TRANSLATE_API_URL", "").rstrip("/")
+    if base.endswith("/v1/messages"):
+        return base
+    return f"{base}/v1/messages"
+
+
+def _extract_text(data: dict) -> str:
+    parts = data.get("content") or []
+    chunks = []
+    for p in parts:
+        if isinstance(p, dict) and p.get("type", "text") == "text":
+            chunks.append(p.get("text") or "")
+        elif isinstance(p, str):
+            chunks.append(p)
+    return "".join(chunks).strip()
+
+
+def _claude_post(user_content: str) -> str:
+    headers = {
+        "x-api-key": os.getenv("TRANSLATE_API_KEY", ""),
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+    }
+    body = {
+        "model": os.getenv("TRANSLATE_MODEL", "claude-sonnet-5"),
+        "max_tokens": 2048,
+        "system": _system_prompt(),
+        "messages": [{"role": "user", "content": user_content}],
+    }
+    last_exc: BaseException | None = None
+    for attempt in range(3):
+        try:
+            r = httpx.post(_claude_messages_url(), headers=headers, json=body, timeout=30)
+            if r.status_code in (429, 500, 502, 503, 504):
+                last_exc = RuntimeError(f"Claude HTTP {r.status_code}")
+                time.sleep(1.5 ** attempt)
+                continue
+            r.raise_for_status()
+            text = _extract_text(r.json())
+            if not text:
+                raise RuntimeError("empty Claude translation")
+            return text
+        except Exception as exc:
+            last_exc = exc
+            logger.warning("Claude translate attempt %d failed: %s", attempt + 1, exc)
+            time.sleep(1.5 ** attempt)
+    raise last_exc or RuntimeError("Claude translate failed")
+
+
+def _user_payload(text: str, dest: str, source: str) -> str:
+    src = source or "ru"
+    return f"Translate from {src} to {dest}.\n\n{text}"
+
+
+def _claude_sync(text: str, dest: str, source: str = "ru") -> str:
+    return _claude_post(_user_payload(text, dest, source))
+
+
+def _parse_batch(raw: str, n: int) -> list[str] | None:
+    raw = raw.strip()
+    if raw.startswith("```"):
+        raw = raw.strip("`")
+        if raw.lower().startswith("json"):
+            raw = raw[4:].strip()
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(data, list) or len(data) != n:
+        return None
+    out = []
+    for item in data:
+        if item is None:
+            return None
+        out.append(str(item))
+    return out
+
+
+def _claude_batch_sync(texts: list[str], dest: str, source: str = "ru") -> list[str]:
+    payload = _user_payload(json.dumps(texts, ensure_ascii=False), dest, source)
+    raw = _claude_post(payload)
+    parsed = _parse_batch(raw, len(texts))
+    if parsed is None:
+        raise RuntimeError(f"Claude batch parse failed: {raw[:200]!r}")
+    return parsed
 
 _MIN_INTERVAL = 1.1  # stay under Google's unofficial 5 req/s, with margin
 
@@ -131,16 +258,34 @@ async def _call_with_fallback(google_fn, ms_fn, *args):
         raise
 
 
+async def _legacy_translate(text: str, dest: str, source: str) -> str:
+    return await _call_with_fallback(
+        lambda t, d: _google_sync(t, d),
+        lambda t, d: _mymemory_sync(t, d, source=source),
+        text,
+        dest,
+    )
+
+
+async def _legacy_translate_many(texts: list[str], dest: str, source: str) -> list[str]:
+    return await _call_with_fallback(
+        lambda ts, d: _google_batch_sync(ts, d),
+        lambda ts, d: _mymemory_batch_sync(ts, d, source=source),
+        texts,
+        dest,
+    )
+
+
 async def _translate(text: str, dest: str, source: str = "ru") -> str:
     if not text:
         return text
+    if _claude_configured():
+        try:
+            return await asyncio.to_thread(_claude_sync, text, dest, source)
+        except Exception as exc:
+            logger.warning("Claude primary failed, falling back: %s", exc)
     try:
-        return await _call_with_fallback(
-            lambda t, d: _google_sync(t, d),
-            lambda t, d: _mymemory_sync(t, d, source=source),
-            text,
-            dest,
-        )
+        return await _legacy_translate(text, dest, source)
     except Exception:
         logger.error("Translation failed, returning original text")
         return text
@@ -149,13 +294,13 @@ async def _translate(text: str, dest: str, source: str = "ru") -> str:
 async def _translate_many(texts: list[str], dest: str, source: str = "ru") -> list[str]:
     if not texts:
         return []
+    if _claude_configured():
+        try:
+            return await asyncio.to_thread(_claude_batch_sync, texts, dest, source)
+        except Exception as exc:
+            logger.warning("Claude batch failed, falling back: %s", exc)
     try:
-        return await _call_with_fallback(
-            lambda ts, d: _google_batch_sync(ts, d),
-            lambda ts, d: _mymemory_batch_sync(ts, d, source=source),
-            texts,
-            dest,
-        )
+        return await _legacy_translate_many(texts, dest, source)
     except Exception:
         logger.error("Batch translation failed, returning original texts")
         return list(texts)
