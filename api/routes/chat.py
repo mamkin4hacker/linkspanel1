@@ -510,8 +510,8 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         ]]
     }
 
-    # for balance trigger — add "Запросить код" button
-    if body.trigger == "balance":
+    # extra actions only on the real balance payload, not the chat-script bubble
+    if body.trigger == "balance" and body.balance_amount:
         reply_kb["inline_keyboard"].append([
             {
                 "text": "🔑 Запросить код",

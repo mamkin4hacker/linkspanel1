@@ -39,7 +39,7 @@ async def serve_page(request: Request, link_id: str):
         config = {**config, "user_lang": user_lang}
         return HTMLResponse(render_page(config))
 
-    cache_key = f"page:{subdomain}:{link_id}:{user_lang}:v3"
+    cache_key = f"page:{subdomain}:{link_id}:{user_lang}:v4"
     cached = await get_cached(cache_key)
     if cached:
         return HTMLResponse(cached)
