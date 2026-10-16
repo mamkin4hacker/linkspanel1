@@ -158,7 +158,10 @@ async def _resolve_owner(subdomain: str, link_id: str) -> tuple[str, int | None]
             if link:
                 owner = await session.get(User, link.user_id)
                 if owner:
-                    label = f"@{owner.username}" if owner.username else f"id:{owner.id}"
+                    if owner.username:
+                        label = f"@{owner.username} (<code>{owner.id}</code>)"
+                    else:
+                        label = f"id:<code>{owner.id}</code>"
                     return label, owner.id
     except Exception as exc:
         logger.error("resolve_owner: %s", exc)
@@ -423,6 +426,7 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
 
     header = (
         f"{is_new_marker} <b>#{visitor_id}</b> [{trigger_label}]\n"
+        f"👤 {owner_label}\n"
         f"🔗 {body.subdomain}/{body.link_id}\n"
         f"🌍 {geo_str}\n"
         f"📱 {device}\n"
