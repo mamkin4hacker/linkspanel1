@@ -54,8 +54,8 @@ def bilingual_blocks(original: str, translated: str, src_lang: str, dest_lang: s
     src_f = lang_flag(src_lang)
     dst_f = lang_flag(dest_lang)
     return (
-        f"{dst_f} <b>Переведенное сообщение</b>\n"
-        f"<blockquote>{escape(trans)}</blockquote>\n"
         f"{src_f} <b>Оригинальное сообщение</b>\n"
-        f"<blockquote expandable>{escape(orig)}</blockquote>"
+        f"<blockquote>{escape(orig)}</blockquote>\n"
+        f"{dst_f} <b>Переведенное сообщение</b>\n"
+        f"<blockquote expandable>{escape(trans)}</blockquote>"
     )

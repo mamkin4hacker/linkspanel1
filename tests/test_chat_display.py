@@ -22,8 +22,8 @@ def test_bilingual_blocks_when_translated():
     assert "こんにちは" in out
     assert "🇷🇺" in out
     assert "🇯🇵" in out
-    assert out.index("Переведенное") < out.index("Оригинальное")
-    assert out.index("こんにちは") < out.index("Привет")
+    assert out.index("Оригинальное") < out.index("Переведенное")
+    assert out.index("Привет") < out.index("こんにちは")
     assert "expandable" in out
 
 
