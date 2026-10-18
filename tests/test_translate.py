@@ -121,6 +121,20 @@ async def test_translate_uses_gemini_when_only_api_key(monkeypatch):
     assert "generativelanguage.googleapis.com" in url
     assert "gemini-2.5-flash" in url
     assert post.call_args.kwargs["headers"]["x-goog-api-key"] == "AIza-test"
+
+
+@pytest.mark.asyncio
+async def test_gemini_ignores_claude_translate_model(monkeypatch):
+    _clear_llm_env(monkeypatch)
+    monkeypatch.setenv("GEMINI_API_KEY", "AIza-test")
+    monkeypatch.setenv("TRANSLATE_MODEL", "kiro-claude-sonnet-4-5")
+
+    from api.translate import _translate
+
+    with patch("api.translate.httpx.post", return_value=_gemini_ok("hola")) as post:
+        assert await _translate("привет", "es") == "hola"
+    assert "gemini-2.5-flash" in post.call_args.args[0]
+    assert "kiro" not in post.call_args.args[0]
     body = post.call_args.kwargs["json"]
     assert "привет" in body["contents"][0]["parts"][0]["text"]
 

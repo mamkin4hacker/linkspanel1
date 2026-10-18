@@ -66,9 +66,9 @@ def _gemini_model() -> str:
     explicit = os.getenv("TRANSLATE_GEMINI_MODEL", "").strip()
     if explicit:
         return explicit
-    model = os.getenv("TRANSLATE_MODEL", "").strip()
-    if model and not model.lower().startswith(("claude", "anthropic")):
-        return model
+    model = os.getenv("TRANSLATE_MODEL", "").strip().lower()
+    if model.startswith("gemini"):
+        return os.getenv("TRANSLATE_MODEL", "").strip()
     return _GEMINI_DEFAULT_MODEL
 
 
@@ -100,6 +100,8 @@ def _gemini_post(user_content: str) -> str:
     for attempt in range(3):
         try:
             r = httpx.post(url, headers=headers, json=body, timeout=30)
+            if r.status_code in (400, 401, 403, 404):
+                r.raise_for_status()
             if r.status_code in (429, 500, 502, 503, 504):
                 last_exc = RuntimeError(f"Gemini HTTP {r.status_code}")
                 time.sleep(1.5 ** attempt)
@@ -112,6 +114,8 @@ def _gemini_post(user_content: str) -> str:
         except Exception as exc:
             last_exc = exc
             logger.warning("Gemini translate attempt %d failed: %s", attempt + 1, exc)
+            if getattr(exc, "response", None) is not None and exc.response.status_code in (400, 401, 403, 404):
+                break
             time.sleep(1.5 ** attempt)
     raise last_exc or RuntimeError("Gemini translate failed")
 
