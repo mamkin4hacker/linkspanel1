@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from user_agents import parse as ua_parse
 
+from api.chat_display import bilingual_blocks, visitor_tag
 from api.cache import (
     _is_translation_error,
     append_chat_message,
@@ -425,15 +426,15 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         is_new_marker = "🆕 Новый клиент" if msgs_count <= 1 else "🔄 Повторный клиент"
 
     header = (
-        f"{is_new_marker} <b>#{visitor_id}</b> [{trigger_label}]\n"
+        f"{is_new_marker} <b>{visitor_tag(visitor_id)}</b> [{trigger_label}]\n"
         f"👤 {owner_label}\n"
         f"🔗 {body.subdomain}/{body.link_id}\n"
         f"🌍 {geo_str}\n"
         f"📱 {device}\n"
         f"🗣 {sys_lang}\n"
     )
-    if visitor_lang != "ru" and ru_text != body.text:
-        msg_body = f"<i>[{visitor_lang}→ru]</i> {ru_text}"
+    if visitor_lang != "ru" and ru_text and body.text and ru_text != body.text:
+        msg_body = bilingual_blocks(body.text, ru_text, visitor_lang, "ru")
     else:
         msg_body = ru_text or f"<i>[{trigger_label}]</i>"
 

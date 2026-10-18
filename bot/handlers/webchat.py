@@ -26,7 +26,8 @@ from aiogram.types import CallbackQuery, Message
 
 import httpx
 
-from api.cache import get_chat_steps, push_operator_reply, set_chat_steps
+from api.cache import get_chat_session, get_chat_steps, push_operator_reply, set_chat_steps
+from api.chat_display import bilingual_blocks, visitor_tag
 from api.translate import _translate
 from bot.keyboards import (
     admin_cancel_reply_kb,
@@ -138,7 +139,19 @@ async def wchat_send_reply(message: Message, state: FSMContext):
 
     await push_operator_reply(session_id, payload)
     await state.clear()
-    await message.answer("✅ Ответ отправлен посетителю.", reply_markup=main_menu_kb(is_super_admin=is_super_admin(message.from_user.id)))
+
+    sess = await get_chat_session(session_id) or {}
+    tag = visitor_tag(sess.get("visitor_id"))
+    if reply_text and translated and translated != reply_text:
+        body = bilingual_blocks(reply_text, translated, "ru", visitor_lang)
+        confirm = f"{body}\n\n✅ Сообщение отправлено {tag}"
+    else:
+        confirm = f"✅ Сообщение отправлено {tag}"
+    await message.answer(
+        confirm,
+        reply_markup=main_menu_kb(is_super_admin=is_super_admin(message.from_user.id)),
+        parse_mode="HTML",
+    )
 
 
 # ── operator: click "Запросить код" ───────────────────────────────────────────
