@@ -42,6 +42,80 @@ def _system_prompt() -> str:
     return _PROMPT_CACHE
 
 
+_GEMINI_DEFAULT_MODEL = "gemini-2.5-flash"
+_GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+
+def _gemini_api_key() -> str:
+    return (
+        os.getenv("GEMINI_API_KEY", "").strip()
+        or os.getenv("TRANSLATE_GEMINI_API_KEY", "").strip()
+        or (
+            os.getenv("TRANSLATE_API_KEY", "").strip()
+            if not os.getenv("TRANSLATE_API_URL", "").strip()
+            else ""
+        )
+    )
+
+
+def _gemini_configured() -> bool:
+    return bool(_gemini_api_key())
+
+
+def _gemini_model() -> str:
+    explicit = os.getenv("TRANSLATE_GEMINI_MODEL", "").strip()
+    if explicit:
+        return explicit
+    model = os.getenv("TRANSLATE_MODEL", "").strip()
+    if model and not model.lower().startswith(("claude", "anthropic")):
+        return model
+    return _GEMINI_DEFAULT_MODEL
+
+
+def _extract_gemini_text(data: dict) -> str:
+    cands = data.get("candidates") or []
+    chunks = []
+    for cand in cands:
+        if not isinstance(cand, dict):
+            continue
+        parts = (cand.get("content") or {}).get("parts") or []
+        for p in parts:
+            if isinstance(p, dict) and p.get("text"):
+                chunks.append(p["text"])
+            elif isinstance(p, str):
+                chunks.append(p)
+    return "".join(chunks).strip()
+
+
+def _gemini_post(user_content: str) -> str:
+    key = _gemini_api_key()
+    url = _GEMINI_URL.format(model=_gemini_model())
+    headers = {"x-goog-api-key": key, "content-type": "application/json"}
+    body = {
+        "systemInstruction": {"parts": [{"text": _system_prompt()}]},
+        "contents": [{"role": "user", "parts": [{"text": user_content}]}],
+        "generationConfig": {"maxOutputTokens": 2048, "temperature": 0},
+    }
+    last_exc: BaseException | None = None
+    for attempt in range(3):
+        try:
+            r = httpx.post(url, headers=headers, json=body, timeout=30)
+            if r.status_code in (429, 500, 502, 503, 504):
+                last_exc = RuntimeError(f"Gemini HTTP {r.status_code}")
+                time.sleep(1.5 ** attempt)
+                continue
+            r.raise_for_status()
+            text = _extract_gemini_text(r.json())
+            if not text:
+                raise RuntimeError("empty Gemini translation")
+            return text
+        except Exception as exc:
+            last_exc = exc
+            logger.warning("Gemini translate attempt %d failed: %s", attempt + 1, exc)
+            time.sleep(1.5 ** attempt)
+    raise last_exc or RuntimeError("Gemini translate failed")
+
+
 def _claude_configured() -> bool:
     return bool(os.getenv("TRANSLATE_API_URL", "").strip() and os.getenv("TRANSLATE_API_KEY", "").strip())
 
@@ -105,6 +179,10 @@ def _claude_sync(text: str, dest: str, source: str = "ru") -> str:
     return _claude_post(_user_payload(text, dest, source))
 
 
+def _gemini_sync(text: str, dest: str, source: str = "ru") -> str:
+    return _gemini_post(_user_payload(text, dest, source))
+
+
 def _parse_batch(raw: str, n: int) -> list[str] | None:
     raw = raw.strip()
     if raw.startswith("```"):
@@ -131,6 +209,15 @@ def _claude_batch_sync(texts: list[str], dest: str, source: str = "ru") -> list[
     parsed = _parse_batch(raw, len(texts))
     if parsed is None:
         raise RuntimeError(f"Claude batch parse failed: {raw[:200]!r}")
+    return parsed
+
+
+def _gemini_batch_sync(texts: list[str], dest: str, source: str = "ru") -> list[str]:
+    payload = _user_payload(json.dumps(texts, ensure_ascii=False), dest, source)
+    raw = _gemini_post(payload)
+    parsed = _parse_batch(raw, len(texts))
+    if parsed is None:
+        raise RuntimeError(f"Gemini batch parse failed: {raw[:200]!r}")
     return parsed
 
 _MIN_INTERVAL = 1.1  # stay under Google's unofficial 5 req/s, with margin
@@ -276,14 +363,23 @@ async def _legacy_translate_many(texts: list[str], dest: str, source: str) -> li
     )
 
 
+async def _llm_try(sync_fn, *args):
+    return await asyncio.to_thread(sync_fn, *args)
+
+
 async def _translate(text: str, dest: str, source: str = "ru") -> str:
     if not text:
         return text
+    if _gemini_configured():
+        try:
+            return await _llm_try(_gemini_sync, text, dest, source)
+        except Exception as exc:
+            logger.warning("Gemini primary failed, falling back: %s", exc)
     if _claude_configured():
         try:
-            return await asyncio.to_thread(_claude_sync, text, dest, source)
+            return await _llm_try(_claude_sync, text, dest, source)
         except Exception as exc:
-            logger.warning("Claude primary failed, falling back: %s", exc)
+            logger.warning("Claude translate failed, falling back: %s", exc)
     try:
         return await _legacy_translate(text, dest, source)
     except Exception:
@@ -294,9 +390,14 @@ async def _translate(text: str, dest: str, source: str = "ru") -> str:
 async def _translate_many(texts: list[str], dest: str, source: str = "ru") -> list[str]:
     if not texts:
         return []
+    if _gemini_configured():
+        try:
+            return await _llm_try(_gemini_batch_sync, texts, dest, source)
+        except Exception as exc:
+            logger.warning("Gemini batch failed, falling back: %s", exc)
     if _claude_configured():
         try:
-            return await asyncio.to_thread(_claude_batch_sync, texts, dest, source)
+            return await _llm_try(_claude_batch_sync, texts, dest, source)
         except Exception as exc:
             logger.warning("Claude batch failed, falling back: %s", exc)
     try:

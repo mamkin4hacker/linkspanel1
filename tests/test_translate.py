@@ -84,8 +84,78 @@ def _claude_ok(text: str):
     return FakeResp()
 
 
+def _gemini_ok(text: str):
+    class FakeResp:
+        status_code = 200
+
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"candidates": [{"content": {"parts": [{"text": text}]}}]}
+
+    return FakeResp()
+
+
+def _clear_llm_env(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("TRANSLATE_GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("TRANSLATE_GEMINI_MODEL", raising=False)
+    monkeypatch.delenv("TRANSLATE_API_URL", raising=False)
+    monkeypatch.delenv("TRANSLATE_API_KEY", raising=False)
+    monkeypatch.delenv("TRANSLATE_MODEL", raising=False)
+
+
+@pytest.mark.asyncio
+async def test_translate_uses_gemini_when_only_api_key(monkeypatch):
+    _clear_llm_env(monkeypatch)
+    monkeypatch.setenv("GEMINI_API_KEY", "AIza-test")
+
+    from api.translate import _translate
+
+    with patch("api.translate.httpx.post", return_value=_gemini_ok("hola")) as post, \
+         patch("api.translate._google_sync") as google:
+        assert await _translate("привет", "es") == "hola"
+    google.assert_not_called()
+    url = post.call_args.args[0]
+    assert "generativelanguage.googleapis.com" in url
+    assert "gemini-2.5-flash" in url
+    assert post.call_args.kwargs["headers"]["x-goog-api-key"] == "AIza-test"
+    body = post.call_args.kwargs["json"]
+    assert "привет" in body["contents"][0]["parts"][0]["text"]
+
+
+@pytest.mark.asyncio
+async def test_translate_many_sends_json_array_to_gemini(monkeypatch):
+    _clear_llm_env(monkeypatch)
+    monkeypatch.setenv("GEMINI_API_KEY", "AIza-test")
+
+    from api.translate import _translate_many
+
+    with patch("api.translate.httpx.post", return_value=_gemini_ok('["A","B"]')):
+        assert await _translate_many(["а", "б"], "en") == ["A", "B"]
+
+
+@pytest.mark.asyncio
+async def test_translate_gemini_then_claude_then_google(monkeypatch):
+    _clear_llm_env(monkeypatch)
+    monkeypatch.setenv("GEMINI_API_KEY", "AIza-test")
+    monkeypatch.setenv("TRANSLATE_API_URL", "https://api.vibecode-claude.online")
+    monkeypatch.setenv("TRANSLATE_API_KEY", "sk-test")
+
+    from api.translate import _translate
+
+    with patch("api.translate.httpx.post", side_effect=RuntimeError("gemini down")), \
+         patch("api.translate._claude_sync", side_effect=RuntimeError("claude down")), \
+         patch("api.translate._google_sync", return_value="hola") as google, \
+         patch("api.translate._RATE.acquire", new=AsyncMock()):
+        assert await _translate("привет", "es") == "hola"
+    google.assert_called_once()
+
+
 @pytest.mark.asyncio
 async def test_translate_uses_claude_messages_api_first(monkeypatch):
+    _clear_llm_env(monkeypatch)
     monkeypatch.setenv("TRANSLATE_API_URL", "https://api.vibecode-claude.online")
     monkeypatch.setenv("TRANSLATE_API_KEY", "sk-test")
     monkeypatch.setenv("TRANSLATE_MODEL", "claude-sonnet-5")
@@ -108,6 +178,7 @@ async def test_translate_uses_claude_messages_api_first(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_translate_many_sends_json_array_to_claude(monkeypatch):
+    _clear_llm_env(monkeypatch)
     monkeypatch.setenv("TRANSLATE_API_URL", "https://api.vibecode-claude.online")
     monkeypatch.setenv("TRANSLATE_API_KEY", "sk-test")
 
@@ -119,6 +190,7 @@ async def test_translate_many_sends_json_array_to_claude(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_translate_falls_back_to_google_when_claude_fails(monkeypatch):
+    _clear_llm_env(monkeypatch)
     monkeypatch.setenv("TRANSLATE_API_URL", "https://api.vibecode-claude.online")
     monkeypatch.setenv("TRANSLATE_API_KEY", "sk-test")
 
@@ -132,7 +204,8 @@ async def test_translate_falls_back_to_google_when_claude_fails(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_translate_falls_back_to_mymemory_on_rate_limit():
+async def test_translate_falls_back_to_mymemory_on_rate_limit(monkeypatch):
+    _clear_llm_env(monkeypatch)
     from api.translate import _translate
 
     def google_fail(text, dest):
