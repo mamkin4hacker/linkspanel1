@@ -42,7 +42,14 @@ def _system_prompt() -> str:
     return _PROMPT_CACHE
 
 
-_GEMINI_DEFAULT_MODEL = "gemini-2.5-flash"
+# 2.5-flash 404s on new AI Studio keys (capacity lock). Prefer current Flash.
+_GEMINI_DEFAULT_MODELS = (
+    "gemini-3.8-flash",
+    "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-flash-latest",
+    "gemini-2.5-flash",
+)
 _GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
@@ -62,14 +69,18 @@ def _gemini_configured() -> bool:
     return bool(_gemini_api_key())
 
 
-def _gemini_model() -> str:
+def _gemini_models() -> list[str]:
     explicit = os.getenv("TRANSLATE_GEMINI_MODEL", "").strip()
     if explicit:
-        return explicit
-    model = os.getenv("TRANSLATE_MODEL", "").strip().lower()
-    if model.startswith("gemini"):
-        return os.getenv("TRANSLATE_MODEL", "").strip()
-    return _GEMINI_DEFAULT_MODEL
+        return [explicit]
+    model = os.getenv("TRANSLATE_MODEL", "").strip()
+    if model.lower().startswith("gemini"):
+        return [model]
+    return list(_GEMINI_DEFAULT_MODELS)
+
+
+def _gemini_model() -> str:
+    return _gemini_models()[0]
 
 
 def _extract_gemini_text(data: dict) -> str:
@@ -89,7 +100,6 @@ def _extract_gemini_text(data: dict) -> str:
 
 def _gemini_post(user_content: str) -> str:
     key = _gemini_api_key()
-    url = _GEMINI_URL.format(model=_gemini_model())
     headers = {"x-goog-api-key": key, "content-type": "application/json"}
     body = {
         "systemInstruction": {"parts": [{"text": _system_prompt()}]},
@@ -97,26 +107,36 @@ def _gemini_post(user_content: str) -> str:
         "generationConfig": {"maxOutputTokens": 2048, "temperature": 0},
     }
     last_exc: BaseException | None = None
-    for attempt in range(3):
-        try:
-            r = httpx.post(url, headers=headers, json=body, timeout=30)
-            if r.status_code in (400, 401, 403, 404):
+    models = _gemini_models()
+    for model in models:
+        url = _GEMINI_URL.format(model=model)
+        for attempt in range(3):
+            try:
+                r = httpx.post(url, headers=headers, json=body, timeout=30)
+                if r.status_code == 404:
+                    logger.warning("Gemini model %s not found, trying next", model)
+                    last_exc = RuntimeError(f"Gemini HTTP 404 for {model}")
+                    break
+                if r.status_code in (400, 401, 403):
+                    r.raise_for_status()
+                if r.status_code in (429, 500, 502, 503, 504):
+                    last_exc = RuntimeError(f"Gemini HTTP {r.status_code}")
+                    time.sleep(1.5 ** attempt)
+                    continue
                 r.raise_for_status()
-            if r.status_code in (429, 500, 502, 503, 504):
-                last_exc = RuntimeError(f"Gemini HTTP {r.status_code}")
+                text = _extract_gemini_text(r.json())
+                if not text:
+                    raise RuntimeError("empty Gemini translation")
+                if model != models[0]:
+                    logger.info("Gemini using model %s", model)
+                return text
+            except Exception as exc:
+                last_exc = exc
+                logger.warning("Gemini translate %s attempt %d failed: %s", model, attempt + 1, exc)
+                code = getattr(getattr(exc, "response", None), "status_code", None)
+                if code in (400, 401, 403, 404):
+                    break
                 time.sleep(1.5 ** attempt)
-                continue
-            r.raise_for_status()
-            text = _extract_gemini_text(r.json())
-            if not text:
-                raise RuntimeError("empty Gemini translation")
-            return text
-        except Exception as exc:
-            last_exc = exc
-            logger.warning("Gemini translate attempt %d failed: %s", attempt + 1, exc)
-            if getattr(exc, "response", None) is not None and exc.response.status_code in (400, 401, 403, 404):
-                break
-            time.sleep(1.5 ** attempt)
     raise last_exc or RuntimeError("Gemini translate failed")
 
 
