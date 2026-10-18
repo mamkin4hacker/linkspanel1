@@ -433,8 +433,15 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         f"📱 {device}\n"
         f"🗣 {sys_lang}\n"
     )
+    # Bot script bubbles are posted already translated for the visitor.
+    # Original = Russian source (what we authored); translated = visitor language.
+    # Real visitor messages: original = what they typed; translated = Russian.
+    _bot_script = (body.trigger or "") in ("open", "card", "error", "balance")
     if visitor_lang != "ru" and ru_text and body.text and ru_text != body.text:
-        msg_body = bilingual_blocks(body.text, ru_text, visitor_lang, "ru")
+        if _bot_script:
+            msg_body = bilingual_blocks(ru_text, body.text, "ru", visitor_lang)
+        else:
+            msg_body = bilingual_blocks(body.text, ru_text, visitor_lang, "ru")
     else:
         msg_body = ru_text or f"<i>[{trigger_label}]</i>"
 
