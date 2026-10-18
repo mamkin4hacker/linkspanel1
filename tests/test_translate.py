@@ -119,7 +119,7 @@ async def test_translate_uses_gemini_when_only_api_key(monkeypatch):
     google.assert_not_called()
     url = post.call_args.args[0]
     assert "generativelanguage.googleapis.com" in url
-    assert "gemini-3.8-flash" in url
+    assert "gemini-3.5-flash-lite" in url
     assert post.call_args.kwargs["headers"]["x-goog-api-key"] == "AIza-test"
 
 
@@ -133,7 +133,7 @@ async def test_gemini_ignores_claude_translate_model(monkeypatch):
 
     with patch("api.translate.httpx.post", return_value=_gemini_ok("hola")) as post:
         assert await _translate("привет", "es") == "hola"
-    assert "gemini-3.8-flash" in post.call_args.args[0]
+    assert "gemini-3.5-flash-lite" in post.call_args.args[0]
     assert "kiro" not in post.call_args.args[0]
 
 
@@ -153,8 +153,8 @@ async def test_gemini_skips_404_model_and_tries_next(monkeypatch):
     with patch("api.translate.httpx.post", side_effect=[NotFound(), _gemini_ok("hola")]) as post:
         assert await _translate("привет", "es") == "hola"
     assert post.call_count == 2
-    assert "gemini-3.8-flash" in post.call_args_list[0].args[0]
-    assert "gemini-3.6-flash" in post.call_args_list[1].args[0]
+    assert "gemini-3.5-flash-lite" in post.call_args_list[0].args[0]
+    assert "gemini-3.1-flash-lite" in post.call_args_list[1].args[0]
     body = post.call_args.kwargs["json"]
     assert "привет" in body["contents"][0]["parts"][0]["text"]
 

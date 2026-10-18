@@ -42,13 +42,14 @@ def _system_prompt() -> str:
     return _PROMPT_CACHE
 
 
-# 2.5-flash 404s on new AI Studio keys (capacity lock). Prefer current Flash.
+# Lite first: 3.8-flash often stalls past our timeout. 2.5-* 404s on new keys.
 _GEMINI_DEFAULT_MODELS = (
-    "gemini-3.8-flash",
-    "gemini-3.6-flash",
     "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-2.5-flash-lite",
+    "gemini-3.6-flash",
     "gemini-flash-latest",
-    "gemini-2.5-flash",
+    "gemini-3.8-flash",
 )
 _GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
