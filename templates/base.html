@@ -346,9 +346,6 @@ var CSS =
   '.bh{background:#29abe2;padding:14px 16px;display:flex;align-items:center;gap:10px;}' +
   '.bh-dot{width:10px;height:10px;border-radius:50%;background:#6ee86e;flex-shrink:0;}' +
   '.bh-title{color:#fff;font-size:14px;font-weight:600;flex:1;}' +
-  '.bh-x{background:none;border:none;color:rgba(255,255,255,.8);font-size:20px;' +
-  'cursor:pointer;line-height:1;padding:0 2px;}' +
-  '.bh-x:hover{color:#fff;}' +
 
   /* messages area */
   '.msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;' +
@@ -407,7 +404,6 @@ var HTML =
     '<div class="bh">' +
       '<span class="bh-dot"></span>' +
       '<span class="bh-title">Support</span>' +
-      '<button class="bh-x" id="bh-x" type="button">×</button>' +
     '</div>' +
     '<div class="msgs" id="msgs"></div>' +
     '<div class="typing" id="typing"><div class="td"></div><div class="td"></div><div class="td"></div></div>' +
@@ -476,7 +472,6 @@ customElements.define('support-widget', class extends HTMLElement {
     document.addEventListener('keydown', unlockAudio, {once:true});
 
     sh.getElementById('fab').addEventListener('click',  ()=> this._toggle());
-    sh.getElementById('bh-x').addEventListener('click', ()=> this._close());
     sh.getElementById('send').addEventListener('click',  ()=> this._sendUser());
     sh.getElementById('att').addEventListener('click', ()=> sh.getElementById('att-file').click());
     sh.getElementById('att-file').addEventListener('change', (e)=> this._sendFile(e.target.files && e.target.files[0]));
