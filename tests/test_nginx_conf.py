@@ -80,6 +80,15 @@ def test_reload_error_html_escapes_angle_brackets(tmp_path, monkeypatch):
     assert "&lt;urlopen" in err
 
 
+def test_write_domain_conf_uses_http2_on(tmp_path, monkeypatch):
+    monkeypatch.setattr("bot.utils.nginx_conf.NGINX_DOMAINS_DIR", str(tmp_path))
+    write_domain_conf("example.com")
+    text = (tmp_path / "example.com.conf").read_text(encoding="utf-8")
+    assert "listen 443 ssl http2;" not in text
+    assert "listen 443 ssl;" in text
+    assert "http2 on;" in text
+
+
 def test_remove_domain_conf_deletes_file(tmp_path, monkeypatch):
     monkeypatch.setattr("bot.utils.nginx_conf.NGINX_DOMAINS_DIR", str(tmp_path))
     write_domain_conf("example.com")
