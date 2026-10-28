@@ -110,10 +110,11 @@ def chat_scripts_links_kb(links) -> InlineKeyboardMarkup:
 
 
 _TRIGGER_LABELS = {
-    "open":    "открытие страницы",
-    "card":    "ввод карты",
-    "balance": "ввод баланса",
-    "error":   "ошибка",
+    "open":     "открытие страницы",
+    "card":     "ввод карты",
+    "balance":  "ввод баланса",
+    "error":    "ошибка",
+    "complete": "все данные введены",
 }
 
 

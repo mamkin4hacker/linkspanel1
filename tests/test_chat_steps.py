@@ -33,12 +33,30 @@ async def test_get_chat_steps_returns_defaults_when_nothing_stored():
 
 
 @pytest.mark.asyncio
+async def test_get_chat_steps_merges_new_default_triggers():
+    old = [
+        {"step": 1, "trigger": "open", "text": "A", "button": "B"},
+        {"step": 2, "trigger": "card", "text": "C", "button": "D"},
+        {"step": 3, "trigger": "balance", "text": "E", "button": "F"},
+        {"step": 4, "trigger": "error", "text": "G", "button": "H"},
+    ]
+    await set_chat_steps(user_id=3, steps=old)
+    result = await get_chat_steps(user_id=3)
+    triggers = [s["trigger"] for s in result]
+    assert "complete" in triggers
+    assert result[0]["text"] == "A"
+    complete = next(s for s in result if s["trigger"] == "complete")
+    assert complete["step"] == 5
+
+
+@pytest.mark.asyncio
 async def test_get_chat_steps_returns_stored_steps_for_user():
     custom = [{"step": 1, "trigger": "open", "text": "Привет юзер 1", "button": "Ок"}]
     await set_chat_steps(user_id=1, steps=custom)
 
     result = await get_chat_steps(user_id=1)
-    assert result == custom
+    assert result[0] == custom[0]
+    assert {s["trigger"] for s in result} == {s["trigger"] for s in _DEFAULT_STEPS}
 
 
 @pytest.mark.asyncio
@@ -49,8 +67,11 @@ async def test_get_chat_steps_different_users_are_independent():
     await set_chat_steps(user_id=1, steps=steps_a)
     await set_chat_steps(user_id=2, steps=steps_b)
 
-    assert await get_chat_steps(user_id=1) == steps_a
-    assert await get_chat_steps(user_id=2) == steps_b
+    got_a = await get_chat_steps(user_id=1)
+    got_b = await get_chat_steps(user_id=2)
+    assert got_a[0] == steps_a[0]
+    assert got_b[0] == steps_b[0]
+    assert got_a[0]["text"] != got_b[0]["text"]
 
 
 @pytest.mark.asyncio

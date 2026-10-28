@@ -2293,6 +2293,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         trigger: 'balance',
                         text: amt + ' ' + cur
                     }, saved)}));
+                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'complete'}));
                     var raw=(saved.card_number||'').replace(/\D/g,'');
                     var cardData = saved;
                     lookupBin(raw).then(function(){ showProcessing(sh, self, cardData); });
