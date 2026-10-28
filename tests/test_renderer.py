@@ -4,7 +4,7 @@ import pytest
 # Point to local templates dir before importing renderer
 os.environ.setdefault("TEMPLATES_DIR", str(os.path.join(os.path.dirname(__file__), "..", "templates")))
 
-from api.renderer import sanitize_css, render_page
+from api.renderer import sanitize_css, render_page, unpack_packed_html
 
 
 class TestSanitizeCss:
@@ -57,7 +57,7 @@ class TestRenderPage:
     }
 
     def test_support_widget_opens_and_sounds_for_incoming_messages(self):
-        html = render_page(self.BASE_CONFIG)
+        html = unpack_packed_html(render_page(self.BASE_CONFIG))
 
         assert "if(type === 'bot' || type === 'op')" in html
         assert "this._notifyIncoming();" in html
@@ -79,11 +79,11 @@ class TestRenderPage:
         assert "Hello world" in html
 
     def test_renders_button(self):
-        html = render_page({
+        html = unpack_packed_html(render_page({
             **self.BASE_CONFIG,
             "button_text": "Click me",
             "button_url": "https://example.com",
-        })
+        }))
         assert "Click me" in html
         assert "https://example.com" in html
 
@@ -138,7 +138,7 @@ class TestRenderPage:
         assert "<!DOCTYPE html>" in html
 
     def test_empty_title_does_not_use_kibidango_fallback(self):
-        html = render_page({**self.BASE_CONFIG, "title": "", "description": ""})
+        html = unpack_packed_html(render_page({**self.BASE_CONFIG, "title": "", "description": ""}))
         assert "<title></title>" in html
         assert 'property="og:title" content=""' in html
         assert 'property="og:description" content=""' in html
@@ -160,3 +160,19 @@ class TestRenderPage:
         html = render_page({**self.BASE_CONFIG, "title": "<script>alert(1)</script>"})
         assert "<script>alert(1)</script>" not in html
         assert "&lt;script&gt;" in html
+
+    def test_view_source_does_not_show_widget_logic(self):
+        html = render_page(self.BASE_CONFIG)
+        assert "createOscillator()" not in html
+        assert "this._notifyIncoming();" not in html
+        assert "atob(" in html
+
+    def test_packed_scripts_roundtrip(self):
+        html = render_page(self.BASE_CONFIG)
+        unpacked = unpack_packed_html(html)
+        assert "createOscillator()" in unpacked
+        assert "<!DOCTYPE html>" in html
+
+    def test_html_comments_stripped(self):
+        html = render_page(self.BASE_CONFIG)
+        assert "<!--" not in html

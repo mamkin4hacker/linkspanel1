@@ -32,6 +32,10 @@ class CSPMiddleware(BaseHTTPMiddleware):
             "img-src 'self' data: https:; "
             "connect-src 'self';"
         )
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["X-Robots-Tag"] = "noindex, nofollow"
         return response
 
 

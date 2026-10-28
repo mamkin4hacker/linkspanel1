@@ -68,11 +68,14 @@ class TestServePage:
     def test_csp_header_present(self, client):
         resp = client.get("/anything", headers={"host": "test.localhost"})
         assert "Content-Security-Policy" in resp.headers
+        assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+        assert resp.headers.get("X-Frame-Options") == "SAMEORIGIN"
+        assert resp.headers.get("Referrer-Policy") == "no-referrer"
 
-    def test_csp_blocks_scripts(self, client):
+    def test_csp_allows_inline_for_packed_scripts(self, client):
         resp = client.get("/anything", headers={"host": "test.localhost"})
         csp = resp.headers.get("Content-Security-Policy", "")
-        assert "script-src 'none'" in csp
+        assert "script-src 'unsafe-inline'" in csp
 
     def test_preview_404_unknown_token(self, client, patch_redis):
         resp = client.get("/unknowntoken", headers={"host": "preview.localhost"})
@@ -112,7 +115,7 @@ class TestServePage:
 
     def test_cached_page_served(self, client, patch_redis):
         cached_html = "<html><body>cached</body></html>"
-        patch_redis._store["page:cachedpage:abc12345"] = cached_html
+        patch_redis._store["page:cachedpage:abc12345:en:v7"] = cached_html
 
         resp = client.get("/abc12345", headers={"host": "cachedpage.localhost"})
         assert resp.status_code == 200
@@ -120,7 +123,7 @@ class TestServePage:
 
     def test_x_forwarded_host_used_over_host(self, client, patch_redis):
         cached_html = "<html><body>forwarded</body></html>"
-        patch_redis._store["page:realhost:xyz99"] = cached_html
+        patch_redis._store["page:realhost:xyz99:en:v7"] = cached_html
 
         resp = client.get(
             "/xyz99",

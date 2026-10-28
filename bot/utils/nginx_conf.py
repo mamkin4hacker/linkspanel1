@@ -29,10 +29,19 @@ server {{
     ssl_protocols       TLSv1.2 TLSv1.3;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 
+    location ~ /\\. {{
+        deny all;
+    }}
+
+    location ~* \\.(py|pyc|env|md|sql)$ {{
+        deny all;
+    }}
+
     location /static/ {{
         alias /app/static/;
         expires 30d;
         add_header Cache-Control "public, immutable";
+        add_header X-Content-Type-Options "nosniff" always;
     }}
 
     location /chat/stream/ {{
@@ -56,6 +65,9 @@ server {{
         proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
         proxy_set_header   Host             $host;
         proxy_read_timeout 10s;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header Referrer-Policy "no-referrer" always;
     }}
 }}
 """
