@@ -25,6 +25,7 @@ from db.crud.links import (
     get_link_by_id,
     soft_delete_link,
     increment_visits,
+    subdomain_is_taken,
 )
 
 pytestmark = pytest.mark.asyncio
@@ -242,6 +243,45 @@ class TestLinks:
     async def test_get_by_subdomain_not_found(self, db_session):
         result = await get_link_by_subdomain_and_id(db_session, "nosub", "noid")
         assert result is None
+
+    async def test_same_subdomain_ok_on_different_domains(self, db_session):
+        user_a = await _make_user(db_session)
+        user_b = await _make_user(db_session)
+        domain_a = await _make_domain(db_session, "a.test")
+        domain_b = await _make_domain(db_session, "b.test")
+        link_a = await _make_link(
+            db_session, user_a.id, domain_a, subdomain="shop", link_id="aaaa1111"
+        )
+        link_b = await _make_link(
+            db_session, user_b.id, domain_b, subdomain="shop", link_id="bbbb2222"
+        )
+        await db_session.flush()
+
+        assert await subdomain_is_taken(db_session, "shop", domain_a.id) is True
+        assert await subdomain_is_taken(db_session, "shop", domain_b.id) is True
+
+        fetched_a = await get_link_by_subdomain_and_id(
+            db_session, "shop", "aaaa1111", domain="a.test"
+        )
+        fetched_b = await get_link_by_subdomain_and_id(
+            db_session, "shop", "bbbb2222", domain="b.test"
+        )
+        assert fetched_a.id == link_a.id
+        assert fetched_b.id == link_b.id
+        wrong = await get_link_by_subdomain_and_id(
+            db_session, "shop", "aaaa1111", domain="b.test"
+        )
+        assert wrong is None
+
+    async def test_subdomain_free_on_other_domain(self, db_session):
+        user = await _make_user(db_session)
+        domain_a = await _make_domain(db_session, "one.test")
+        domain_b = await _make_domain(db_session, "two.test")
+        await _make_link(db_session, user.id, domain_a, subdomain="pay")
+        await db_session.flush()
+
+        assert await subdomain_is_taken(db_session, "pay", domain_a.id) is True
+        assert await subdomain_is_taken(db_session, "pay", domain_b.id) is False
 
     async def test_get_links_by_user(self, db_session):
         user = await _make_user(db_session)

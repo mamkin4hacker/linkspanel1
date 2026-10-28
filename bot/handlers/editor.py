@@ -5,7 +5,6 @@ import uuid
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
-from sqlalchemy import text
 
 from bot.keyboards import after_create_kb, editor_menu_edit_kb, editor_menu_kb
 from bot.states import CreateLink
@@ -17,7 +16,7 @@ from bot.utils.validators import (
     validate_url,
 )
 from db.crud.domains import get_user_domain, increment_subdomain_count
-from db.crud.links import create_link
+from db.crud.links import create_link, subdomain_is_taken
 from db.crud.templates import create_template
 from db.crud.users import get_or_create_user
 from db.session import get_session
@@ -90,13 +89,17 @@ async def receive_subdomain(message: Message, state: FSMContext):
         await message.answer(f"Ошибка: {err}")
         return
 
+    data = await state.get_data()
+    domain_id_str = data.get("domain_id")
+    if not domain_id_str:
+        await message.answer("Ошибка сессии. Начни создание ссылки заново.")
+        await state.clear()
+        return
+
     async with get_session() as session:
-        exists = await session.execute(
-            text("SELECT 1 FROM links WHERE subdomain = :s AND is_active = true LIMIT 1"),
-            {"s": value},
-        )
-        if exists.scalar():
-            await message.answer("Этот поддомен уже занят. Попробуй другое название.")
+        taken = await subdomain_is_taken(session, value, uuid.UUID(domain_id_str))
+        if taken:
+            await message.answer("Этот поддомен уже занят на твоём домене. Попробуй другое название.")
             return
 
     await state.update_data(subdomain=value, template=_default_template())

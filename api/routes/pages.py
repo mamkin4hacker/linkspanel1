@@ -29,7 +29,10 @@ def detect_language(accept_language: str) -> str:
 @router.get("/{link_id}")
 async def serve_page(request: Request, link_id: str):
     host = request.headers.get("X-Forwarded-Host") or request.headers.get("host", "")
-    subdomain = host.split(".")[0]
+    host = host.split(":")[0].lower().strip()
+    host_parts = host.split(".") if host else []
+    subdomain = host_parts[0] if host_parts else ""
+    apex = ".".join(host_parts[1:]) if len(host_parts) > 1 else ""
     user_lang = detect_language(request.headers.get("accept-language", ""))
 
     if subdomain == "preview":
@@ -45,7 +48,9 @@ async def serve_page(request: Request, link_id: str):
         return HTMLResponse(cached)
 
     async with get_session() as session:
-        link = await get_link_by_subdomain_and_id(session, subdomain, link_id)
+        link = await get_link_by_subdomain_and_id(
+            session, subdomain, link_id, domain=apex or None
+        )
         if not link or not link.is_active:
             raise HTTPException(status_code=404)
         await increment_visits(session, link.id)

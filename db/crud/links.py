@@ -4,7 +4,7 @@ from typing import Sequence
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import Link
+from db.models import Domain, Link
 
 
 async def create_link(session: AsyncSession, autocommit: bool = True, **kwargs) -> Link:
@@ -18,16 +18,34 @@ async def create_link(session: AsyncSession, autocommit: bool = True, **kwargs) 
     return obj
 
 
-async def get_link_by_subdomain_and_id(
-    session: AsyncSession, subdomain: str, link_id: str
-) -> Link | None:
+async def subdomain_is_taken(
+    session: AsyncSession, subdomain: str, domain_id: uuid.UUID
+) -> bool:
+    """True if an active link already uses this subdomain on this domain."""
     result = await session.execute(
-        select(Link).where(
+        select(Link.id).where(
             Link.subdomain == subdomain,
-            Link.link_id == link_id,
+            Link.domain_id == domain_id,
             Link.is_active == True,
-        )
+        ).limit(1)
     )
+    return result.scalar() is not None
+
+
+async def get_link_by_subdomain_and_id(
+    session: AsyncSession,
+    subdomain: str,
+    link_id: str,
+    domain: str | None = None,
+) -> Link | None:
+    stmt = select(Link).where(
+        Link.subdomain == subdomain,
+        Link.link_id == link_id,
+        Link.is_active == True,
+    )
+    if domain:
+        stmt = stmt.join(Domain).where(Domain.domain == domain)
+    result = await session.execute(stmt)
     return result.scalar_one_or_none()
 
 
