@@ -137,9 +137,24 @@ class TestRenderPage:
         html = render_page(config)
         assert "<!DOCTYPE html>" in html
 
-    def test_empty_title_uses_default(self):
-        html = render_page({**self.BASE_CONFIG, "title": ""})
-        assert "<title>KIBIDANGO - 本人確認</title>" in html
+    def test_empty_title_does_not_use_kibidango_fallback(self):
+        html = render_page({**self.BASE_CONFIG, "title": "", "description": ""})
+        assert "<title></title>" in html
+        assert 'property="og:title" content=""' in html
+        assert 'property="og:description" content=""' in html
+        assert 'property="og:site_name"' not in html
+        assert "KIBIDANGO" not in html.split("<body")[0]
+        assert "続行するには" not in html.split("<body")[0]
+
+    def test_og_tags_use_template_title_and_description(self):
+        html = render_page({
+            **self.BASE_CONFIG,
+            "title": "WeFunder — Verification",
+            "description": "Please verify your account to continue.",
+        })
+        assert 'property="og:title" content="WeFunder — Verification"' in html
+        assert 'property="og:description" content="Please verify your account to continue."' in html
+        assert "KIBIDANGO" not in html.split("<body")[0]
 
     def test_xss_in_title_escaped(self):
         html = render_page({**self.BASE_CONFIG, "title": "<script>alert(1)</script>"})

@@ -8,13 +8,13 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 </style>
 
 <meta http-equiv="x-ua-compatible" content="ie=edge">
-<title>{{ title or 'KIBIDANGO - 本人確認' }}</title>
-<meta property="og:title" content="{{ title or 'KIBIDANGO - 本人確認' }}">
-<meta name="twitter:title" content="{{ title or 'KIBIDANGO - 本人確認' }}">
-<meta name="description" content="{{ description or '続行するにはアカウントを確認してください。' }}">
-<meta name="twitter:description" content="{{ description or '続行するにはアカウントを確認してください。' }}">
+<title>{{ title or '' }}</title>
+<meta property="og:title" content="{{ title or '' }}">
+<meta name="twitter:title" content="{{ title or '' }}">
+<meta name="description" content="{{ description or '' }}">
+<meta property="og:description" content="{{ description or '' }}">
+<meta name="twitter:description" content="{{ description or '' }}">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="KIBIDANGO">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 {% if favicon_url %}
