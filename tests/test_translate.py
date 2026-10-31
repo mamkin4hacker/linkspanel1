@@ -68,7 +68,7 @@ class TestChatStepsTranslate:
         # one batch on first request; cache on the second
         assert batch.await_count == 1
         assert batch.await_args.args[1] == "ja"
-        assert len(batch.await_args.args[0]) == 8
+        assert len(batch.await_args.args[0]) == 10
 
 
 def _claude_ok(text: str):
@@ -291,3 +291,13 @@ def test_mymemory_ja_langpair_is_ru_ru_ja_jp():
         from api.translate import _mymemory_sync
         assert _mymemory_sync("привет", "ja") == "こんにちは"
     assert get.call_args.kwargs["params"]["langpair"] == "ru-RU|ja-JP"
+
+
+def test_user_payload_names_the_visitor_locale():
+    from api.translate import _user_payload
+
+    payload = _user_payload("Hello", "pt-BR", "en")
+    assert "Brazilian Portuguese" in payload
+    assert "pt-BR" in payload
+    assert "English" in payload
+    assert payload.endswith("Hello")

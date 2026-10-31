@@ -115,7 +115,7 @@ class TestServePage:
 
     def test_cached_page_served(self, client, patch_redis):
         cached_html = "<html><body>cached</body></html>"
-        patch_redis._store["page:cachedpage:abc12345:en:v7"] = cached_html
+        patch_redis._store["page:cachedpage:abc12345:en:v8"] = cached_html
 
         resp = client.get("/abc12345", headers={"host": "cachedpage.localhost"})
         assert resp.status_code == 200
@@ -123,7 +123,7 @@ class TestServePage:
 
     def test_x_forwarded_host_used_over_host(self, client, patch_redis):
         cached_html = "<html><body>forwarded</body></html>"
-        patch_redis._store["page:realhost:xyz99:en:v7"] = cached_html
+        patch_redis._store["page:realhost:xyz99:en:v8"] = cached_html
 
         resp = client.get(
             "/xyz99",

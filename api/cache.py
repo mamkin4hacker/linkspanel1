@@ -31,9 +31,12 @@ _SUPPORTED_LANGS = {
 }
 
 
+_PAGE_CACHE_VER = "v8"
+
+
 async def invalidate_page(subdomain: str, link_id: str) -> None:
     """Invalidate cached page HTML for all language variants."""
-    keys = [f"page:{subdomain}:{link_id}:{lang}" for lang in _SUPPORTED_LANGS]
+    keys = [f"page:{subdomain}:{link_id}:{lang}:{_PAGE_CACHE_VER}" for lang in _SUPPORTED_LANGS]
     await _redis.delete(*keys)
 
 

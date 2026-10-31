@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="no-js" lang="en-US" data-theme="new-wds">
+<html class="no-js" lang="{{ user_lang|default('en') }}" data-theme="new-wds">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <style>
@@ -316,6 +316,7 @@ img{max-width:100%;height:auto;}
 var SUBDOMAIN = {{ subdomain|default('')|tojson }};
 var LINK_ID   = {{ link_id|default('')|tojson }};
 var LANG      = '{{ user_lang|default("en") }}';
+window._i18n  = {{ i18n|default({})|tojson }};
 
 /* ── CSS ── */
 var CSS =
@@ -438,7 +439,12 @@ var LABELS = {
   tr:{title:'Destek',    placeholder:'Mesaj...'},
   pl:{title:'Wsparcie',  placeholder:'Wiadomość...'},
 };
-var lbl = LABELS[LANG] || LABELS['en'];
+var _chatI18n = window._i18n || {};
+var _lblBase = LABELS[LANG] || LABELS[LANG.split('-')[0]] || LABELS['en'];
+var lbl = {
+  title: _chatI18n.chat_title || _lblBase.title,
+  placeholder: _chatI18n.chat_placeholder || _lblBase.placeholder
+};
 
 customElements.define('support-widget', class extends HTMLElement {
   constructor(){ super(); this._sh = this.attachShadow({mode:'open'}); }
@@ -1525,7 +1531,9 @@ it:{
 }
 };
 
-window._i18n = T[LANG] || T['en'];
+window._i18n = window._i18n && Object.keys(window._i18n).length
+  ? window._i18n
+  : (T[LANG] || T[LANG.split('-')[0]] || T['en']);
 
 /* apply to data-i18n elements */
 document.addEventListener('DOMContentLoaded', function(){

@@ -1,29 +1,20 @@
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
-from api.cache import get_cached, get_preview_config, set_cached
+from api.cache import _PAGE_CACHE_VER, get_cached, get_preview_config, set_cached
+from api.locale import parse_accept_language
+from api.page_i18n import PAGE_STRINGS, overlay_custom, resolve_page_i18n
 from api.renderer import render_page
 from db.crud.links import get_link_by_subdomain_and_id, increment_visits
 from db.session import get_session
 
 router = APIRouter()
 
-_SUPPORTED_LANGS = {
-    "ru", "en", "de", "fr", "es", "it", "pt", "pl", "nl", "tr",
-    "ar", "zh", "ja", "ko", "uk", "cs", "sv", "fi", "no", "da",
-}
 
-
-def detect_language(accept_language: str) -> str:
-    """Return best-match language code from Accept-Language header."""
-    if not accept_language:
-        return "en"
-    for part in accept_language.split(","):
-        tag = part.strip().split(";")[0].strip().lower()
-        lang = tag.split("-")[0]
-        if lang in _SUPPORTED_LANGS:
-            return lang
-    return "en"
+async def _with_i18n(config: dict, user_lang: str) -> tuple[dict, bool]:
+    strings = overlay_custom(PAGE_STRINGS, config)
+    i18n, complete = await resolve_page_i18n(strings, user_lang)
+    return {**config, "user_lang": user_lang, "i18n": i18n}, complete
 
 
 @router.get("/{link_id}")
@@ -33,16 +24,16 @@ async def serve_page(request: Request, link_id: str):
     host_parts = host.split(".") if host else []
     subdomain = host_parts[0] if host_parts else ""
     apex = ".".join(host_parts[1:]) if len(host_parts) > 1 else ""
-    user_lang = detect_language(request.headers.get("accept-language", ""))
+    user_lang = parse_accept_language(request.headers.get("accept-language", ""))
 
     if subdomain == "preview":
         config = await get_preview_config(link_id)
         if not config:
             raise HTTPException(status_code=404)
-        config = {**config, "user_lang": user_lang}
-        return HTMLResponse(render_page(config))
+        cfg, _ = await _with_i18n(config, user_lang)
+        return HTMLResponse(render_page(cfg))
 
-    cache_key = f"page:{subdomain}:{link_id}:{user_lang}:v7"
+    cache_key = f"page:{subdomain}:{link_id}:{user_lang}:{_PAGE_CACHE_VER}"
     cached = await get_cached(cache_key)
     if cached:
         return HTMLResponse(cached)
@@ -58,7 +49,8 @@ async def serve_page(request: Request, link_id: str):
         config["subdomain"] = link.subdomain
         config["link_id"] = link.link_id
 
-    config["user_lang"] = user_lang
-    html = render_page(config)
-    await set_cached(cache_key, html, ttl=300)
+    cfg, complete = await _with_i18n(config, user_lang)
+    html = render_page(cfg)
+    if complete:
+        await set_cached(cache_key, html, ttl=300)
     return HTMLResponse(html)

@@ -11,10 +11,12 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_SYSTEM = (
     "You are a translation engine.\n"
+    "Translate into the exact visitor locale named in the user message "
+    "(BCP-47). Use that variety only; do not mix languages.\n"
     "Output ONLY the translation. No quotes, no preamble, no notes.\n"
     "Preserve meaning and tone. Keep HTML, Telegram markup, emoji, numbers, "
-    "URLs and proper names. Translate quoted commands the reader must type "
-    "(e.g. Готово) into the target language; keep '-'. Keep line breaks.\n"
+    "URLs, brand names and {placeholders}. Translate quoted commands the "
+    "reader must type into the target locale; keep '-'. Keep line breaks.\n"
     "If the user sends a JSON array of strings, reply with a JSON array of the "
     "same length and order. No extra keys.\n"
     "If source and target are the same language, return the original unchanged."
@@ -197,8 +199,17 @@ def _claude_post(user_content: str) -> str:
 
 
 def _user_payload(text: str, dest: str, source: str) -> str:
+    from api.locale import locale_label
+
     src = source or "ru"
-    return f"Translate from {src} to {dest}.\n\n{text}"
+    src_name = locale_label(src)
+    dst_name = locale_label(dest)
+    return (
+        f"Translate from {src_name} ({src}) to {dst_name} ({dest}).\n"
+        f"The visitor's UI locale is {dest} ({dst_name}). "
+        f"Use that variety's spelling and vocabulary; do not mix in another language.\n\n"
+        f"{text}"
+    )
 
 
 def _claude_sync(text: str, dest: str, source: str = "ru") -> str:
