@@ -74,17 +74,17 @@ async def _send_telegram(text: str, owner_tg_id: int | None = None) -> None:
 async def bin_lookup(bin: str) -> JSONResponse:
     if not bin.isdigit() or len(bin) < 6:
         return JSONResponse({"bank": {"name": ""}})
-    try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            r = await client.get(
-                f"https://lookup.binlist.net/{bin[:8]}",
-                headers={"Accept-Version": "3"}
-            )
-            if r.status_code == 200:
-                return JSONResponse(r.json())
-    except Exception:
-        pass
-    return JSONResponse({"bank": {"name": ""}})
+    info = await lookup_bin(bin)
+    return JSONResponse({
+        "scheme": info.get("scheme") or "",
+        "type": info.get("type") or "",
+        "brand": info.get("brand") or "",
+        "bank": {"name": info.get("bank") or ""},
+        "country": {
+            "name": info.get("country") or "",
+            "emoji": info.get("country_emoji") or "",
+        },
+    })
 
 
 @router.post("/submit")

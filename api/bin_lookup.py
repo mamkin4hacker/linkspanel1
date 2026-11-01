@@ -1,6 +1,11 @@
+import csv
 import re
+from pathlib import Path
 
 import httpx
+
+_CSV_PATH = Path(__file__).resolve().parent.parent / "bins.csv"
+_bin_index: dict[str, dict] | None = None
 
 _SUFFIX_RE = re.compile(
     r",?\s*(NATIONAL ASSOCIATION|N\.A\.|NA|INC\.?|LLC\.?|LTD\.?|"
@@ -39,6 +44,76 @@ def _empty(digits: str = "") -> dict:
     info = dict(_EMPTY_INFO)
     info["digits"] = digits
     return info
+
+
+def country_flag(alpha_2: str) -> str:
+    code = (alpha_2 or "").strip().upper()
+    if len(code) != 2 or not code.isalpha():
+        return ""
+    return "".join(chr(0x1F1E6 + ord(c) - ord("A")) for c in code)
+
+
+def title_country(name: str) -> str:
+    return (name or "").strip().title()
+
+
+def parse_csv_row(digits: str, row: dict | None) -> dict:
+    info = _empty(digits)
+    if not row:
+        return info
+    brand = (row.get("brand") or "").strip()
+    info["scheme"] = brand.lower()
+    info["type"] = (row.get("type") or "").strip().lower()
+    info["brand"] = brand.title()
+    info["country"] = title_country(row.get("country") or "")
+    info["country_emoji"] = country_flag(row.get("alpha_2") or "")
+    info["bank"] = clean_bank_name(row.get("issuer") or "")
+    info["bank_url"] = (row.get("issuer_url") or "").strip()
+    info["bank_phone"] = (row.get("issuer_phone") or "").strip()
+    return info
+
+
+def load_bin_index(path: Path | None = None) -> dict[str, dict]:
+    csv_path = Path(path) if path else _CSV_PATH
+    index: dict[str, dict] = {}
+    if not csv_path.is_file():
+        return index
+    with csv_path.open(newline="", encoding="utf-8", errors="replace") as fh:
+        reader = csv.DictReader(fh)
+        for row in reader:
+            key = (row.get("bin") or "").strip()
+            if not key.isdigit():
+                continue
+            index[key] = {
+                "brand": row.get("brand") or "",
+                "type": row.get("type") or "",
+                "category": row.get("category") or "",
+                "issuer": row.get("issuer") or "",
+                "issuer_phone": row.get("issuer_phone") or "",
+                "issuer_url": row.get("issuer_url") or "",
+                "alpha_2": row.get("alpha_2") or "",
+                "country": row.get("country") or "",
+            }
+    return index
+
+
+def get_bin_index() -> dict[str, dict]:
+    global _bin_index
+    if _bin_index is None:
+        _bin_index = load_bin_index()
+    return _bin_index
+
+
+def lookup_csv(digits: str) -> dict | None:
+    index = get_bin_index()
+    if not index or not digits:
+        return None
+    for n in (8, 6, 5):
+        if len(digits) >= n:
+            row = index.get(digits[:n])
+            if row:
+                return parse_csv_row(digits[:6] if len(digits) >= 6 else digits[:n], row)
+    return None
 
 
 def parse_binlist(digits: str, data: dict | None) -> dict:
@@ -88,6 +163,9 @@ async def lookup_bin(card_number: str) -> dict:
     if len(digits) < 6:
         return _empty()
     bin6 = digits[:6]
+    local = lookup_csv(digits)
+    if local:
+        return local
     query = digits[:8]
     try:
         async with httpx.AsyncClient(timeout=5) as client:
