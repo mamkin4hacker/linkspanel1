@@ -173,6 +173,13 @@ class TestRenderPage:
         assert "createOscillator()" in unpacked
         assert "<!DOCTYPE html>" in html
 
+    def test_packed_script_loader_decodes_utf8(self):
+        from api.renderer import pack_inline_scripts
+
+        html = pack_inline_scripts("<script>var s='¥₽';</script>")
+        assert "TextDecoder" in html
+        assert "Uint8Array.from(atob(" in html
+
     def test_html_comments_stripped(self):
         html = render_page(self.BASE_CONFIG)
         assert "<!--" not in html

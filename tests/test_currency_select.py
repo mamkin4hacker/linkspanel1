@@ -8,7 +8,6 @@ FILES = [
     ROOT / "preview_debug.html",
 ]
 
-# Spot-check codes that are NOT in the old 10-item list.
 NEW_CODES = ("AED", "BRL", "INR", "MXN", "NOK", "PLN", "RUB", "TRY", "UAH", "ZAR")
 OLD_CODES = ("JPY", "USD", "EUR", "GBP", "AUD", "CAD", "CHF", "CNY", "KRW", "SGD")
 
@@ -38,3 +37,11 @@ def test_currency_list_is_large():
     chunk = text[start : start + 12000]
     count = chunk.count("c:")
     assert count >= 150, f"expected >=150 ISO currencies, got {count}"
+
+
+def test_currency_options_skip_non_ascii_symbols():
+    for path in FILES:
+        text = _text(path)
+        assert "isoCurrencyLabel" in text, path.name
+        assert "u0590" in text, path.name
+        assert 'dir="ltr"' in text, path.name

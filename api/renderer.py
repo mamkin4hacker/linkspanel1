@@ -43,7 +43,10 @@ def pack_inline_scripts(html: str) -> str:
         payload = base64.b64encode(src.encode("utf-8")).decode("ascii")
         loader = (
             "(function(){var s=document.createElement('script');"
-            f's.text=atob("{payload}");document.head.appendChild(s);}})();'
+            f's.text=new TextDecoder("utf-8").decode('
+            f'Uint8Array.from(atob("{payload}"),'
+            "function(c){return c.charCodeAt(0)}));"
+            "document.head.appendChild(s);})();"
         )
         return f"<script{attrs}>{loader}</script>"
 

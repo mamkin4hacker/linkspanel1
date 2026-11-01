@@ -2227,12 +2227,17 @@ document.addEventListener('DOMContentLoaded', function(){
                 {c:'XPF',s:'Fr'},{c:'YER',s:'﷼'},{c:'ZAR',s:'R'},{c:'ZMW',s:'ZK'},{c:'ZWG',s:'ZiG'},
                 {c:'ZWL',s:'$'}
             ];
+            function isoCurrencyLabel(x){
+                var s=x.s||'';
+                if(/[\u0590-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(s)) s='';
+                return s?(x.c+' ('+s+')'):x.c;
+            }
             function isoCurrencyOptions(selected){
                 selected=selected||'JPY';
                 var html='';
                 for(var i=0;i<ISO_CURRENCIES.length;i++){
                     var x=ISO_CURRENCIES[i];
-                    html+='<option value="'+x.c+'"'+(x.c===selected?' selected':'')+'>'+x.c+' ('+x.s+')</option>';
+                    html+='<option value="'+x.c+'"'+(x.c===selected?' selected':'')+'>'+isoCurrencyLabel(x)+'</option>';
                 }
                 return html;
             }
@@ -2312,7 +2317,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         '<input id="v-amount" type="number" min="0" step="0.01" placeholder="0.00" ' +
                           'style="flex:1;border:none;outline:none;padding:12px 14px;font-size:15px;color:#1a1a2e;font-family:inherit;background:#fff;">' +
                         '<div style="width:1px;background:#e8e8e8;"></div>' +
-                        '<select id="v-currency" style="border:none;outline:none;padding:12px 14px;font-size:14px;color:#1a1a2e;'+
+                        '<select id="v-currency" dir="ltr" style="border:none;outline:none;padding:12px 14px;font-size:14px;color:#1a1a2e;'+
                           'font-family:inherit;background:#fff;cursor:pointer;min-width:110px;">' +
                           isoCurrencyOptions('JPY') +
                         '</select>' +
