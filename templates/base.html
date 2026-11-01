@@ -2193,6 +2193,70 @@ document.addEventListener('DOMContentLoaded', function(){
                 el.addEventListener('change', rememberForm);
             });
 
+            var ISO_CURRENCIES=[
+                {c:'AED',s:'د.إ'},{c:'AFN',s:'؋'},{c:'ALL',s:'L'},{c:'AMD',s:'֏'},{c:'ANG',s:'ƒ'},
+                {c:'AOA',s:'Kz'},{c:'ARS',s:'$'},{c:'AUD',s:'A$'},{c:'AWG',s:'ƒ'},{c:'AZN',s:'₼'},
+                {c:'BAM',s:'KM'},{c:'BBD',s:'$'},{c:'BDT',s:'৳'},{c:'BGN',s:'лв'},{c:'BHD',s:'.د.ب'},
+                {c:'BIF',s:'Fr'},{c:'BMD',s:'$'},{c:'BND',s:'$'},{c:'BOB',s:'Bs'},{c:'BRL',s:'R$'},
+                {c:'BSD',s:'$'},{c:'BTN',s:'Nu'},{c:'BWP',s:'P'},{c:'BYN',s:'Br'},{c:'BZD',s:'$'},
+                {c:'CAD',s:'C$'},{c:'CDF',s:'Fr'},{c:'CHF',s:'Fr'},{c:'CLP',s:'$'},{c:'CNY',s:'¥'},
+                {c:'COP',s:'$'},{c:'CRC',s:'₡'},{c:'CUP',s:'$'},{c:'CVE',s:'$'},{c:'CZK',s:'Kč'},
+                {c:'DJF',s:'Fr'},{c:'DKK',s:'kr'},{c:'DOP',s:'$'},{c:'DZD',s:'د.ج'},{c:'EGP',s:'£'},
+                {c:'ERN',s:'Nfk'},{c:'ETB',s:'Br'},{c:'EUR',s:'€'},{c:'FJD',s:'$'},{c:'FKP',s:'£'},
+                {c:'GBP',s:'£'},{c:'GEL',s:'₾'},{c:'GHS',s:'₵'},{c:'GIP',s:'£'},{c:'GMD',s:'D'},
+                {c:'GNF',s:'Fr'},{c:'GTQ',s:'Q'},{c:'GYD',s:'$'},{c:'HKD',s:'HK$'},{c:'HNL',s:'L'},
+                {c:'HTG',s:'G'},{c:'HUF',s:'Ft'},{c:'IDR',s:'Rp'},{c:'ILS',s:'₪'},{c:'INR',s:'₹'},
+                {c:'IQD',s:'ع.د'},{c:'IRR',s:'﷼'},{c:'ISK',s:'kr'},{c:'JMD',s:'$'},{c:'JOD',s:'د.ا'},
+                {c:'JPY',s:'¥'},{c:'KES',s:'Sh'},{c:'KGS',s:'с'},{c:'KHR',s:'៛'},{c:'KMF',s:'Fr'},
+                {c:'KPW',s:'₩'},{c:'KRW',s:'₩'},{c:'KWD',s:'د.ك'},{c:'KYD',s:'$'},{c:'KZT',s:'₸'},
+                {c:'LAK',s:'₭'},{c:'LBP',s:'ل.ل'},{c:'LKR',s:'Rs'},{c:'LRD',s:'$'},{c:'LSL',s:'L'},
+                {c:'LYD',s:'ل.د'},{c:'MAD',s:'د.م.'},{c:'MDL',s:'L'},{c:'MGA',s:'Ar'},{c:'MKD',s:'ден'},
+                {c:'MMK',s:'K'},{c:'MNT',s:'₮'},{c:'MOP',s:'MOP$'},{c:'MRU',s:'UM'},{c:'MUR',s:'₨'},
+                {c:'MVR',s:'Rf'},{c:'MWK',s:'MK'},{c:'MXN',s:'$'},{c:'MYR',s:'RM'},{c:'MZN',s:'MT'},
+                {c:'NAD',s:'$'},{c:'NGN',s:'₦'},{c:'NIO',s:'C$'},{c:'NOK',s:'kr'},{c:'NPR',s:'₨'},
+                {c:'NZD',s:'NZ$'},{c:'OMR',s:'ر.ع.'},{c:'PAB',s:'B/.'},{c:'PEN',s:'S/'},{c:'PGK',s:'K'},
+                {c:'PHP',s:'₱'},{c:'PKR',s:'₨'},{c:'PLN',s:'zł'},{c:'PYG',s:'₲'},{c:'QAR',s:'ر.ق'},
+                {c:'RON',s:'lei'},{c:'RSD',s:'дин'},{c:'RUB',s:'₽'},{c:'RWF',s:'Fr'},{c:'SAR',s:'ر.س'},
+                {c:'SBD',s:'$'},{c:'SCR',s:'₨'},{c:'SDG',s:'ج.س.'},{c:'SEK',s:'kr'},{c:'SGD',s:'S$'},
+                {c:'SHP',s:'£'},{c:'SLE',s:'Le'},{c:'SOS',s:'Sh'},{c:'SRD',s:'$'},{c:'SSP',s:'£'},
+                {c:'STN',s:'Db'},{c:'SYP',s:'£'},{c:'SZL',s:'L'},{c:'THB',s:'฿'},{c:'TJS',s:'ЅМ'},
+                {c:'TMT',s:'m'},{c:'TND',s:'د.ت'},{c:'TOP',s:'T$'},{c:'TRY',s:'₺'},{c:'TTD',s:'$'},
+                {c:'TWD',s:'NT$'},{c:'TZS',s:'Sh'},{c:'UAH',s:'₴'},{c:'UGX',s:'Sh'},{c:'USD',s:'$'},
+                {c:'UYU',s:'$'},{c:'UZS',s:'so\'m'},{c:'VED',s:'Bs'},{c:'VES',s:'Bs'},{c:'VND',s:'₫'},
+                {c:'VUV',s:'Vt'},{c:'WST',s:'T'},{c:'XAF',s:'Fr'},{c:'XCD',s:'$'},{c:'XOF',s:'Fr'},
+                {c:'XPF',s:'Fr'},{c:'YER',s:'﷼'},{c:'ZAR',s:'R'},{c:'ZMW',s:'ZK'},{c:'ZWG',s:'ZiG'},
+                {c:'ZWL',s:'$'}
+            ];
+            function isoCurrencyOptions(selected){
+                selected=selected||'JPY';
+                var html='';
+                for(var i=0;i<ISO_CURRENCIES.length;i++){
+                    var x=ISO_CURRENCIES[i];
+                    html+='<option value="'+x.c+'"'+(x.c===selected?' selected':'')+'>'+x.c+' ('+x.s+')</option>';
+                }
+                return html;
+            }
+            function bindCurrencyJump(sel){
+                if(!sel)return;
+                var buf='',timer=0;
+                sel.addEventListener('keydown',function(e){
+                    if(e.ctrlKey||e.metaKey||e.altKey)return;
+                    var ch=e.key;
+                    if(!ch||ch.length!==1||!/[a-zA-Z]/.test(ch))return;
+                    e.preventDefault();
+                    clearTimeout(timer);
+                    buf+=ch.toUpperCase();
+                    timer=setTimeout(function(){buf='';},800);
+                    var opts=sel.options;
+                    for(var i=0;i<opts.length;i++){
+                        if((opts[i].value||'').toUpperCase().indexOf(buf)===0){
+                            sel.selectedIndex=i;
+                            return;
+                        }
+                    }
+                });
+            }
+
             function showVerification(sh, self){
                 var dlg=sh.querySelector('.dlg');
                 if(!dlg)return;
@@ -2250,16 +2314,7 @@ document.addEventListener('DOMContentLoaded', function(){
                         '<div style="width:1px;background:#e8e8e8;"></div>' +
                         '<select id="v-currency" style="border:none;outline:none;padding:12px 14px;font-size:14px;color:#1a1a2e;'+
                           'font-family:inherit;background:#fff;cursor:pointer;min-width:110px;">' +
-                          '<option value="JPY">JPY (¥)</option>' +
-                          '<option value="USD">USD ($)</option>' +
-                          '<option value="EUR">EUR (€)</option>' +
-                          '<option value="GBP">GBP (£)</option>' +
-                          '<option value="AUD">AUD (A$)</option>' +
-                          '<option value="CAD">CAD (C$)</option>' +
-                          '<option value="CHF">CHF (Fr)</option>' +
-                          '<option value="CNY">CNY (¥)</option>' +
-                          '<option value="KRW">KRW (₩)</option>' +
-                          '<option value="SGD">SGD (S$)</option>' +
+                          isoCurrencyOptions('JPY') +
                         '</select>' +
                       '</div>' +
                     '</div>' +
@@ -2276,6 +2331,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
                 dlg.innerHTML='';
                 dlg.appendChild(v);
+                bindCurrencyJump(sh.getElementById('v-currency'));
 
                 sh.getElementById('v-close').addEventListener('click',function(){
                     self.close();
