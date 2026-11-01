@@ -66,7 +66,7 @@ def format_bin_block(info: dict | None) -> str:
     digits = info.get("digits") or ""
     if not digits:
         return ""
-    lines = [f"  BIN: <code>{digits}</code>"]
+    lines = ["BIN:", f"  BIN: <code>{digits}</code>"]
 
     def add(label: str, value: str) -> None:
         if value:
@@ -74,11 +74,11 @@ def format_bin_block(info: dict | None) -> str:
 
     country = info.get("country") or ""
     emoji = info.get("country_emoji") or ""
-    add("Страна BIN", " ".join(p for p in (emoji, country) if p))
+    add("Страна", " ".join(p for p in (emoji, country) if p))
     add("Банк", info.get("bank") or "")
     add("Тип", info.get("type") or "")
     add("Бренд", info.get("brand") or "")
-    if len(lines) == 1:
+    if len(lines) == 2:
         lines.append("  Банк: —")
     return "\n".join(lines)
 

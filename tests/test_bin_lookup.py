@@ -83,8 +83,10 @@ def test_format_bin_block_includes_all_fields():
     assert "New York" not in text
     assert "www.chase.com" not in text
     assert "+1" not in text
-    assert "Страна BIN" in text
-    assert text.index("Страна BIN") < text.index("Банк") < text.index("Тип") < text.index("Бренд")
+    assert text.startswith("BIN:")
+    assert "Страна" in text
+    assert "Страна BIN" not in text
+    assert text.index("BIN:") < text.index("Страна") < text.index("Банк") < text.index("Тип") < text.index("Бренд")
 
 
 def test_format_bin_block_without_bank_still_shows_bin():
