@@ -89,3 +89,35 @@ def test_message_with_image_sends_photo(client, patch_redis, tmp_path, monkeypat
     kwargs = send_photo.await_args.kwargs
     assert kwargs["photo_path"].replace("\\", "/").endswith("chat/sess1/a.png")
     assert "скрин" in kwargs["caption"]
+
+
+@pytest.mark.asyncio
+async def test_script_trigger_keeps_session_lang_on_reply_button(client, patch_redis):
+    from api.cache import create_chat_session
+
+    await create_chat_session("sess-en", "s", "l", lang="en-IN", sys_lang="en-IN")
+    send_msg = AsyncMock()
+    with (
+        patch("api.routes.chat._send_telegram", send_msg),
+        patch("api.routes.chat._send_telegram_photo", AsyncMock()),
+        patch("api.routes.chat._resolve_owner", new=AsyncMock(return_value=("x", 1))),
+        patch("api.routes.chat.NOTIFY_CHAT_ID", ""),
+        patch("api.routes.chat.ADMIN_ID", ""),
+        patch("api.routes.chat.BOT_TOKEN", "t"),
+        patch("api.routes.chat._detect_lang", return_value="ru"),
+    ):
+        resp = client.post(
+            "/chat/message",
+            json={
+                "session_id": "sess-en",
+                "subdomain": "s",
+                "link_id": "l",
+                "trigger": "open",
+                "text": "Здравствуйте, я могу вам помочь чем-нибудь?",
+            },
+        )
+    assert resp.status_code == 200
+    kb = send_msg.await_args.kwargs["reply_markup"]
+    data = kb["inline_keyboard"][0][0]["callback_data"]
+    assert data.endswith(":en-IN")
+    assert "wchat_reply:sess-en:en-IN" == data

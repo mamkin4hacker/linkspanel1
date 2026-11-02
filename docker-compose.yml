@@ -32,6 +32,8 @@ services:
     volumes:
       - ./static:/app/static
       - ./prompts:/app/prompts:ro
+      - ./api:/app/api
+      - ./bot:/app/bot
       - /var/run/docker.sock:/var/run/docker.sock
       - /etc/nginx/conf.d/domains:/etc/nginx/conf.d/domains
       - /etc/letsencrypt:/etc/letsencrypt

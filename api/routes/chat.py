@@ -344,13 +344,17 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         await create_chat_session(body.session_id, body.subdomain, body.link_id)
         sess = await get_chat_session(body.session_id)
 
-    # detect language from actual text; update session so replies go back in right lang
-    if body.text.strip():
+    # Widget UI locale is the source of truth for operator replies.
+    # Script bubbles are already in that language (or Russian if translate
+    # failed) — langdetect on them would overwrite en-IN with "ru".
+    _script = (body.trigger or "") in ("open", "card", "error", "balance", "complete")
+    sess_lang = (sess or {}).get("lang") or (sess or {}).get("sys_lang") or "ru"
+    if body.text.strip() and not _script:
         visitor_lang = _detect_lang(body.text)
-        if visitor_lang != (sess or {}).get("lang", "ru"):
+        if visitor_lang != sess_lang:
             await update_chat_session_lang(body.session_id, visitor_lang)
     else:
-        visitor_lang = (sess or {}).get("lang", "ru")
+        visitor_lang = sess_lang
 
     ru_text = body.text
     if visitor_lang != "ru" and body.text.strip():
