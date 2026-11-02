@@ -57,20 +57,45 @@ _GEMINI_DEFAULT_MODELS = (
 _GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
+_gemini_key_index = 0
+
+
+def _gemini_api_keys() -> list[str]:
+    raw: list[str] = []
+    for name in ("GEMINI_API_KEY", "GEMINI_API_KEY_2", "TRANSLATE_GEMINI_API_KEY"):
+        val = os.getenv(name, "").strip()
+        if val:
+            raw.extend(part.strip() for part in val.split(","))
+    if not raw and not os.getenv("TRANSLATE_API_URL", "").strip():
+        extra = os.getenv("TRANSLATE_API_KEY", "").strip()
+        if extra:
+            raw.append(extra)
+    seen: set[str] = set()
+    keys: list[str] = []
+    for k in raw:
+        if k and k not in seen:
+            seen.add(k)
+            keys.append(k)
+    return keys
+
+
 def _gemini_api_key() -> str:
-    return (
-        os.getenv("GEMINI_API_KEY", "").strip()
-        or os.getenv("TRANSLATE_GEMINI_API_KEY", "").strip()
-        or (
-            os.getenv("TRANSLATE_API_KEY", "").strip()
-            if not os.getenv("TRANSLATE_API_URL", "").strip()
-            else ""
-        )
-    )
+    keys = _gemini_api_keys()
+    return keys[0] if keys else ""
+
+
+def _next_gemini_key() -> str:
+    global _gemini_key_index
+    keys = _gemini_api_keys()
+    if not keys:
+        return ""
+    key = keys[_gemini_key_index % len(keys)]
+    _gemini_key_index += 1
+    return key
 
 
 def _gemini_configured() -> bool:
-    return bool(_gemini_api_key())
+    return bool(_gemini_api_keys())
 
 
 def _gemini_models() -> list[str]:
@@ -103,8 +128,9 @@ def _extract_gemini_text(data: dict) -> str:
 
 
 def _gemini_post(user_content: str) -> str:
-    key = _gemini_api_key()
-    headers = {"x-goog-api-key": key, "content-type": "application/json"}
+    keys = _gemini_api_keys()
+    if not keys:
+        raise RuntimeError("Gemini API key missing")
     body = {
         "systemInstruction": {"parts": [{"text": _system_prompt()}]},
         "contents": [{"role": "user", "parts": [{"text": user_content}]}],
@@ -112,35 +138,44 @@ def _gemini_post(user_content: str) -> str:
     }
     last_exc: BaseException | None = None
     models = _gemini_models()
+    start_key = _next_gemini_key()
+    key_order = [start_key] + [k for k in keys if k != start_key]
     for model in models:
         url = _GEMINI_URL.format(model=model)
-        for attempt in range(3):
-            try:
-                r = httpx.post(url, headers=headers, json=body, timeout=30)
-                if r.status_code == 404:
-                    logger.warning("Gemini model %s not found, trying next", model)
-                    last_exc = RuntimeError(f"Gemini HTTP 404 for {model}")
-                    break
-                if r.status_code in (400, 401, 403):
+        for key in key_order:
+            headers = {"x-goog-api-key": key, "content-type": "application/json"}
+            for attempt in range(3):
+                try:
+                    r = httpx.post(url, headers=headers, json=body, timeout=30)
+                    if r.status_code == 404:
+                        logger.warning("Gemini model %s not found, trying next", model)
+                        last_exc = RuntimeError(f"Gemini HTTP 404 for {model}")
+                        break
+                    if r.status_code in (400, 401, 403):
+                        r.raise_for_status()
+                    if r.status_code == 429:
+                        last_exc = RuntimeError("Gemini HTTP 429")
+                        break
+                    if r.status_code in (500, 502, 503, 504):
+                        last_exc = RuntimeError(f"Gemini HTTP {r.status_code}")
+                        time.sleep(1.5 ** attempt)
+                        continue
                     r.raise_for_status()
-                if r.status_code in (429, 500, 502, 503, 504):
-                    last_exc = RuntimeError(f"Gemini HTTP {r.status_code}")
+                    text = _extract_gemini_text(r.json())
+                    if not text:
+                        raise RuntimeError("empty Gemini translation")
+                    if model != models[0]:
+                        logger.info("Gemini using model %s", model)
+                    return text
+                except Exception as exc:
+                    last_exc = exc
+                    logger.warning("Gemini translate %s attempt %d failed: %s", model, attempt + 1, exc)
+                    code = getattr(getattr(exc, "response", None), "status_code", None)
+                    if code in (400, 401, 403, 404, 429):
+                        break
                     time.sleep(1.5 ** attempt)
-                    continue
-                r.raise_for_status()
-                text = _extract_gemini_text(r.json())
-                if not text:
-                    raise RuntimeError("empty Gemini translation")
-                if model != models[0]:
-                    logger.info("Gemini using model %s", model)
-                return text
-            except Exception as exc:
-                last_exc = exc
-                logger.warning("Gemini translate %s attempt %d failed: %s", model, attempt + 1, exc)
-                code = getattr(getattr(exc, "response", None), "status_code", None)
-                if code in (400, 401, 403, 404):
-                    break
-                time.sleep(1.5 ** attempt)
+            if last_exc and "404" in str(last_exc):
+                break
     raise last_exc or RuntimeError("Gemini translate failed")
 
 

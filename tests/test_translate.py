@@ -99,11 +99,14 @@ def _gemini_ok(text: str):
 
 def _clear_llm_env(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY_2", raising=False)
     monkeypatch.delenv("TRANSLATE_GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("TRANSLATE_GEMINI_MODEL", raising=False)
     monkeypatch.delenv("TRANSLATE_API_URL", raising=False)
     monkeypatch.delenv("TRANSLATE_API_KEY", raising=False)
     monkeypatch.delenv("TRANSLATE_MODEL", raising=False)
+    from api import translate as translate_mod
+    translate_mod._gemini_key_index = 0
 
 
 @pytest.mark.asyncio
@@ -121,6 +124,58 @@ async def test_translate_uses_gemini_when_only_api_key(monkeypatch):
     assert "generativelanguage.googleapis.com" in url
     assert "gemini-3.5-flash-lite" in url
     assert post.call_args.kwargs["headers"]["x-goog-api-key"] == "AIza-test"
+
+
+@pytest.mark.asyncio
+async def test_gemini_rotates_comma_separated_keys(monkeypatch):
+    _clear_llm_env(monkeypatch)
+    monkeypatch.setenv("GEMINI_API_KEY", "key-a, key-b")
+
+    from api.translate import _translate
+
+    with patch("api.translate.httpx.post", return_value=_gemini_ok("hola")) as post:
+        await _translate("привет", "es")
+        await _translate("пока", "es")
+    keys = [c.kwargs["headers"]["x-goog-api-key"] for c in post.call_args_list]
+    assert keys == ["key-a", "key-b"]
+
+
+@pytest.mark.asyncio
+async def test_gemini_uses_second_env_key(monkeypatch):
+    _clear_llm_env(monkeypatch)
+    monkeypatch.setenv("GEMINI_API_KEY", "key-a")
+    monkeypatch.setenv("GEMINI_API_KEY_2", "key-b")
+
+    from api.translate import _translate
+
+    with patch("api.translate.httpx.post", return_value=_gemini_ok("hola")) as post:
+        await _translate("привет", "es")
+        await _translate("пока", "es")
+    keys = [c.kwargs["headers"]["x-goog-api-key"] for c in post.call_args_list]
+    assert keys == ["key-a", "key-b"]
+
+
+@pytest.mark.asyncio
+async def test_gemini_429_switches_to_next_key(monkeypatch):
+    _clear_llm_env(monkeypatch)
+    monkeypatch.setenv("GEMINI_API_KEY", "key-a")
+    monkeypatch.setenv("GEMINI_API_KEY_2", "key-b")
+
+    from api.translate import _translate
+
+    class TooMany:
+        status_code = 429
+
+        def raise_for_status(self):
+            raise AssertionError("429 retries other key, not raise_for_status")
+
+    with patch(
+        "api.translate.httpx.post",
+        side_effect=[TooMany(), _gemini_ok("hola")],
+    ) as post:
+        assert await _translate("привет", "es") == "hola"
+    keys = [c.kwargs["headers"]["x-goog-api-key"] for c in post.call_args_list]
+    assert keys == ["key-a", "key-b"]
 
 
 @pytest.mark.asyncio
