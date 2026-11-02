@@ -134,7 +134,7 @@ def _gemini_post(user_content: str) -> str:
     body = {
         "systemInstruction": {"parts": [{"text": _system_prompt()}]},
         "contents": [{"role": "user", "parts": [{"text": user_content}]}],
-        "generationConfig": {"maxOutputTokens": 2048, "temperature": 0},
+        "generationConfig": {"maxOutputTokens": 8192, "temperature": 0},
     }
     last_exc: BaseException | None = None
     models = _gemini_models()
@@ -261,10 +261,16 @@ def _parse_batch(raw: str, n: int) -> list[str] | None:
         raw = raw.strip("`")
         if raw.lower().startswith("json"):
             raw = raw[4:].strip()
+    data = None
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
-        return None
+        start = raw.find("[")
+        if start >= 0:
+            try:
+                data, _ = json.JSONDecoder().raw_decode(raw, start)
+            except json.JSONDecodeError:
+                data = None
     if not isinstance(data, list) or len(data) != n:
         return None
     out = []
@@ -288,9 +294,10 @@ def _gemini_batch_sync(texts: list[str], dest: str, source: str = "ru") -> list[
     payload = _user_payload(json.dumps(texts, ensure_ascii=False), dest, source)
     raw = _gemini_post(payload)
     parsed = _parse_batch(raw, len(texts))
-    if parsed is None:
-        raise RuntimeError(f"Gemini batch parse failed: {raw[:200]!r}")
-    return parsed
+    if parsed is not None:
+        return parsed
+    logger.warning("Gemini batch JSON parse failed, translating items one by one: %s", raw[:200])
+    return [_gemini_sync(t, dest, source) for t in texts]
 
 _MIN_INTERVAL = 1.1  # stay under Google's unofficial 5 req/s, with margin
 

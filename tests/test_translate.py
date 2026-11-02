@@ -225,6 +225,34 @@ async def test_translate_many_sends_json_array_to_gemini(monkeypatch):
         assert await _translate_many(["а", "б"], "en") == ["A", "B"]
 
 
+def test_parse_batch_extracts_json_array_from_wrapper():
+    from api.translate import _parse_batch
+
+    raw = 'Here you go:\n["A","B"]\n'
+    assert _parse_batch(raw, 2) == ["A", "B"]
+
+
+@pytest.mark.asyncio
+async def test_gemini_batch_retries_items_if_json_truncated(monkeypatch):
+    _clear_llm_env(monkeypatch)
+    monkeypatch.setenv("GEMINI_API_KEY", "AIza-test")
+
+    from api.translate import _translate_many
+
+    truncated = '[\n  "Hello! I am a support specialist regarding verification issues.\\nDue'
+    with patch(
+        "api.translate.httpx.post",
+        side_effect=[
+            _gemini_ok(truncated),
+            _gemini_ok("A"),
+            _gemini_ok("B"),
+        ],
+    ) as post:
+        assert await _translate_many(["а", "б"], "en") == ["A", "B"]
+    assert post.call_count == 3
+    assert post.call_args_list[0].kwargs["json"]["generationConfig"]["maxOutputTokens"] >= 8192
+
+
 @pytest.mark.asyncio
 async def test_translate_gemini_then_claude_then_google(monkeypatch):
     _clear_llm_env(monkeypatch)
