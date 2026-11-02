@@ -3,7 +3,7 @@
 ## Требования
 
 - VPS: минимум 1 CPU, 1 GB RAM (рекомендую 2 GB)
-- ОС: Ubuntu 22.04 LTS
+- ОС: Ubuntu 22.04 LTS. **AlmaLinux 8 — отдельный гайд:** [deploy-alma8.md](./deploy-alma8.md)
 - Домены куплены, NS делегированы на Cloudflare
 - Cloudflare API token готов
 
@@ -233,3 +233,13 @@ docker compose exec postgres pg_dump -U linkgen linkgen > backup_$(date +%Y%m%d)
 | Поддомен не открывается | DNS не разошёлся | Подождать до 24ч, проверить `dig abc.domain1.com` |
 | Бот не отвечает | Неверный токен | Проверить `.env`, перезапустить bot |
 | Ошибка миграции | БД недоступна | `docker compose logs postgres` |
+
+---
+
+## Защита и анонимность origin
+
+1. Cloudflare: записи `@` и `*` — **Proxied** (оранжевое облако). IP VPS снаружи не резолвится.
+2. Файрвол: с мира только 80/443. SSH — только ваш IP.
+3. После `git pull` пересобрать **api, bot, nginx**. Старые файлы в `/etc/nginx/conf.d/domains/*.conf` перезаписать (заново сохранить домен в боте) — иначе `limit_req` и hide Server не подхватятся.
+4. Если токен бота светился в логах — Revoke в BotFather и новый `BOT_TOKEN`.
+5. Репозиторий private, `.env` chmod 600.

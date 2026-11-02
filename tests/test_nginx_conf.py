@@ -89,6 +89,17 @@ def test_write_domain_conf_uses_http2_on(tmp_path, monkeypatch):
     assert "http2 on;" in text
 
 
+def test_write_domain_conf_hardens_recon(tmp_path, monkeypatch):
+    monkeypatch.setattr("bot.utils.nginx_conf.NGINX_DOMAINS_DIR", str(tmp_path))
+    write_domain_conf("example.com")
+    text = (tmp_path / "example.com.conf").read_text(encoding="utf-8")
+    assert "server_tokens off;" in text
+    assert "proxy_hide_header" in text and "Server" in text
+    assert "limit_req zone=" in text
+    assert ".git" in text
+    assert "return 404;" in text
+
+
 def test_remove_domain_conf_deletes_file(tmp_path, monkeypatch):
     monkeypatch.setattr("bot.utils.nginx_conf.NGINX_DOMAINS_DIR", str(tmp_path))
     write_domain_conf("example.com")

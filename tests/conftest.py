@@ -36,6 +36,17 @@ class FakeRedis:
         for key in keys:
             self._store.pop(key, None)
 
+    async def incr(self, key):
+        raw = self._store.get(key)
+        if isinstance(raw, bytes):
+            raw = raw.decode()
+        n = int(raw or 0) + 1
+        self._store[key] = str(n)
+        return n
+
+    async def expire(self, key, ttl):
+        return True
+
     def clear(self):
         self._store.clear()
 

@@ -67,9 +67,7 @@ class AccessMiddleware(BaseMiddleware):
                 allowed = await is_user_allowed(session, user_id)
         except Exception as e:
             logger.error("AccessMiddleware DB error: %s", e)
-            # on DB error let the update through rather than silently dropping it
-            data["is_super_admin"] = False
-            return await handler(event, data)
+            return None
 
         if not allowed:
             logger.info("AccessMiddleware: blocked user_id=%s", user_id)

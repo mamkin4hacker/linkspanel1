@@ -10,8 +10,10 @@ from aiogram.enums import ParseMode
 from bot.handlers import start, editor, links, webchat, admin
 from bot.middleware import AccessMiddleware
 from api.cache import init_redis
+from api.hardening import install_log_redaction
 
 logging.basicConfig(level=logging.INFO)
+install_log_redaction()
 
 
 async def main():
