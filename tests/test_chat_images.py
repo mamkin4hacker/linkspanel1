@@ -121,3 +121,28 @@ async def test_script_trigger_keeps_session_lang_on_reply_button(client, patch_r
     data = kb["inline_keyboard"][0][0]["callback_data"]
     assert data.endswith(":en-IN")
     assert "wchat_reply:sess-en:en-IN" == data
+
+
+def test_chat_session_does_not_leak_visitor_count(client, patch_redis):
+    visitor = type("V", (), {"id": 12345})()
+    with (
+        patch("api.routes.chat._get_geo", new=AsyncMock(return_value=("x", "y"))),
+        patch("api.routes.chat.get_session") as gs,
+        patch(
+            "api.routes.chat.get_or_create_visitor",
+            new=AsyncMock(return_value=(visitor, True)),
+        ),
+    ):
+        cm = AsyncMock()
+        cm.__aenter__ = AsyncMock(return_value=object())
+        cm.__aexit__ = AsyncMock(return_value=None)
+        gs.return_value = cm
+        resp = client.post(
+            "/chat/session",
+            json={"subdomain": "s", "link_id": "l", "lang": "en"},
+        )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "session_id" in data
+    assert "visitor_id" not in data
+    assert "is_new" not in data

@@ -287,7 +287,8 @@ async def start_session(body: StartSession, request: Request) -> JSONResponse:
         lang=body.lang, visitor_id=visitor_id,
         city=city, country=country, device=device, sys_lang=sys_lang,
     )
-    return JSONResponse({"session_id": session_id, "visitor_id": visitor_id, "is_new": is_new})
+    # Do not return visitor_id / is_new — sequential PK is a public headcount.
+    return JSONResponse({"session_id": session_id})
 
 
 # ── POST /chat/upload ─────────────────────────────────────────────────────────
