@@ -10,6 +10,7 @@ import http.client
 import json
 import os
 import socket
+import re
 import urllib.parse
 
 NGINX_DOMAINS_DIR = os.getenv("NGINX_DOMAINS_DIR", "/etc/nginx/conf.d/domains")
@@ -94,8 +95,19 @@ server {{
 """
 
 
+_DOMAIN_FILE_RE = re.compile(r"^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$")
+
+
+def _safe_domain_filename(domain: str) -> str:
+    d = (domain or "").strip().lower()
+    if not _DOMAIN_FILE_RE.fullmatch(d) or ".." in d or "/" in d or "\\" in d:
+        raise ValueError("invalid domain")
+    return d
+
+
 def write_domain_conf(domain: str) -> None:
     """Write an nginx server block for *domain* into NGINX_DOMAINS_DIR."""
+    domain = _safe_domain_filename(domain)
     os.makedirs(NGINX_DOMAINS_DIR, exist_ok=True)
     conf_path = os.path.join(NGINX_DOMAINS_DIR, f"{domain}.conf")
     with open(conf_path, "w", encoding="utf-8") as f:
@@ -104,6 +116,7 @@ def write_domain_conf(domain: str) -> None:
 
 def remove_domain_conf(domain: str) -> bool:
     """Delete the per-domain nginx conf. Returns True if a file was removed."""
+    domain = _safe_domain_filename(domain)
     conf_path = os.path.join(NGINX_DOMAINS_DIR, f"{domain}.conf")
     try:
         os.remove(conf_path)

@@ -30,6 +30,17 @@ def test_encode_operator_event_image_json():
     assert out["text"] == "look"
 
 
+def test_upload_rejects_unknown_session(client, patch_redis, tmp_path, monkeypatch):
+    monkeypatch.setenv("STATIC_DIR", str(tmp_path))
+    resp = client.post(
+        "/chat/upload",
+        files={"file": ("shot.png", io.BytesIO(_PNG), "image/png")},
+        data={"session_id": "no-such"},
+    )
+    assert resp.status_code == 400
+    assert not (tmp_path / "chat" / "no-such").exists()
+
+
 def test_upload_rejects_non_image(client, patch_redis):
     resp = client.post(
         "/chat/upload",
@@ -39,8 +50,12 @@ def test_upload_rejects_non_image(client, patch_redis):
     assert resp.status_code == 400
 
 
-def test_upload_saves_png_and_returns_url(client, patch_redis, tmp_path, monkeypatch):
+@pytest.mark.asyncio
+async def test_upload_saves_png_and_returns_url(client, patch_redis, tmp_path, monkeypatch):
+    from api.cache import create_chat_session
+
     monkeypatch.setenv("STATIC_DIR", str(tmp_path))
+    await create_chat_session("sess1", "s", "l")
     resp = client.post(
         "/chat/upload",
         files={"file": ("shot.png", io.BytesIO(_PNG), "image/png")},

@@ -100,6 +100,16 @@ def test_write_domain_conf_hardens_recon(tmp_path, monkeypatch):
     assert "return 404;" in text
 
 
+def test_write_domain_conf_rejects_path_traversal(tmp_path, monkeypatch):
+    monkeypatch.setattr("bot.utils.nginx_conf.NGINX_DOMAINS_DIR", str(tmp_path))
+    import pytest
+    from bot.utils.nginx_conf import write_domain_conf
+
+    with pytest.raises(ValueError):
+        write_domain_conf("../etc/passwd")
+    assert list(tmp_path.iterdir()) == []
+
+
 def test_remove_domain_conf_deletes_file(tmp_path, monkeypatch):
     monkeypatch.setattr("bot.utils.nginx_conf.NGINX_DOMAINS_DIR", str(tmp_path))
     write_domain_conf("example.com")

@@ -179,6 +179,17 @@ _ALLOWED_IMAGE_TYPES = {
 _MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 
+def _ext_from_magic(data: bytes) -> str | None:
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return ".png"
+    if data.startswith(b"\xff\xd8\xff"):
+        return ".jpg"
+    if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
+        return ".webp"
+    return None
+
+
+
 def encode_operator_event(reply: str) -> str:
     if reply == "__request_code__":
         return json.dumps({"action": "request_code"}, ensure_ascii=False)
@@ -300,16 +311,20 @@ async def upload_chat_image(
 ) -> JSONResponse:
     if not session_id.strip():
         return JSONResponse({"ok": False, "error": "session"}, status_code=400)
+    safe_sess = "".join(c for c in session_id if c.isalnum() or c in "-_")[:64]
+    if not safe_sess or await get_chat_session(safe_sess) is None:
+        return JSONResponse({"ok": False, "error": "session"}, status_code=400)
     ctype = (file.content_type or "").lower()
-    ext = _ALLOWED_IMAGE_TYPES.get(ctype)
-    if not ext:
+    if ctype not in _ALLOWED_IMAGE_TYPES:
         return JSONResponse({"ok": False, "error": "type"}, status_code=400)
     data = await file.read(_MAX_IMAGE_BYTES + 1)
     if len(data) > _MAX_IMAGE_BYTES:
         return JSONResponse({"ok": False, "error": "size"}, status_code=400)
     if not data:
         return JSONResponse({"ok": False, "error": "empty"}, status_code=400)
-    safe_sess = "".join(c for c in session_id if c.isalnum() or c in "-_")[:64]
+    ext = _ext_from_magic(data)
+    if not ext:
+        return JSONResponse({"ok": False, "error": "type"}, status_code=400)
     dest_dir = os.path.join(_static_dir(), "chat", safe_sess)
     os.makedirs(dest_dir, exist_ok=True)
     filename = f"{uuid.uuid4().hex}{ext}"
