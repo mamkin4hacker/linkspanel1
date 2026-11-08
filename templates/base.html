@@ -478,6 +478,7 @@ customElements.define('support-widget', class extends HTMLElement {
     this._typing = sh.getElementById('typing');
     this._open   = false;
     this._sessionId = null;
+    this._pendingTriggers = [];
     this._sse    = null;
     this._steps  = [];
     this._audioCtx = null;
@@ -496,7 +497,25 @@ customElements.define('support-widget', class extends HTMLElement {
       if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); this._sendUser(); }
     });
 
+    this._bindPageTriggers();
     this._init();
+  }
+
+  _bindPageTriggers(){
+    if(this._triggersBound) return;
+    this._triggersBound = true;
+    var self = this;
+    document.addEventListener('chat:trigger', function(e){
+      var detail = e.detail;
+      if(detail && typeof detail === 'object' && detail.trigger){
+        var extra = {};
+        var skipKeys = {trigger:1, text:1};
+        Object.keys(detail).forEach(function(k){ if(!skipKeys[k]) extra[k] = detail[k]; });
+        self._postTrigger(detail.trigger, detail.text || '', extra);
+      } else {
+        self._fireTrigger(detail);
+      }
+    });
   }
 
   async _init(){
@@ -517,6 +536,11 @@ customElements.define('support-widget', class extends HTMLElement {
       this._sessionId = d.session_id;
     } catch(e){ return; }
 
+    var queued = this._pendingTriggers.splice(0);
+    for(var i=0;i<queued.length;i++){
+      this._postTrigger(queued[i].trigger, queued[i].text, queued[i].extra);
+    }
+
     try {
       var r2 = await fetch('/chat/steps?subdomain='+SUBDOMAIN+'&link_id='+LINK_ID+'&lang='+LANG);
       this._steps = await r2.json();
@@ -526,21 +550,6 @@ customElements.define('support-widget', class extends HTMLElement {
     this._startSSE();
     this._startHeartbeat();
     this._fireTrigger('open');
-
-    /* listen for page triggers */
-    var self = this;
-    document.addEventListener('chat:trigger', function(e){
-      var detail = e.detail;
-      /* если detail — объект {trigger, text, ...extra}, отправляем напрямую без поиска шага */
-      if(detail && typeof detail === 'object' && detail.trigger){
-        var extra = {};
-        var skipKeys = {trigger:1, text:1};
-        Object.keys(detail).forEach(function(k){ if(!skipKeys[k]) extra[k] = detail[k]; });
-        self._postTrigger(detail.trigger, detail.text || '', extra);
-      } else {
-        self._fireTrigger(detail);
-      }
-    });
   }
 
   _unlockAudio(){
@@ -707,7 +716,10 @@ customElements.define('support-widget', class extends HTMLElement {
   }
 
   async _postTrigger(trigger, text, extra){
-    if(!this._sessionId) return;
+    if(!this._sessionId){
+      this._pendingTriggers.push({trigger: trigger, text: text || '', extra: extra || {}});
+      return;
+    }
     try {
       var body = Object.assign({
         session_id: this._sessionId,
