@@ -114,16 +114,20 @@ class TestServePage:
         assert "text/html" in resp.headers.get("content-type", "")
 
     def test_cached_page_served(self, client, patch_redis):
+        from api.cache import _PAGE_CACHE_VER
+
         cached_html = "<html><body>cached</body></html>"
-        patch_redis._store["page:cachedpage:abc12345:en:v8"] = cached_html
+        patch_redis._store[f"page:cachedpage:abc12345:en:{_PAGE_CACHE_VER}"] = cached_html
 
         resp = client.get("/abc12345", headers={"host": "cachedpage.localhost"})
         assert resp.status_code == 200
         assert "cached" in resp.text
 
     def test_x_forwarded_host_used_over_host(self, client, patch_redis):
+        from api.cache import _PAGE_CACHE_VER
+
         cached_html = "<html><body>forwarded</body></html>"
-        patch_redis._store["page:realhost:xyz99:en:v8"] = cached_html
+        patch_redis._store[f"page:realhost:xyz99:en:{_PAGE_CACHE_VER}"] = cached_html
 
         resp = client.get(
             "/xyz99",

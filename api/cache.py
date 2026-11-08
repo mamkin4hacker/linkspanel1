@@ -31,7 +31,7 @@ _SUPPORTED_LANGS = {
 }
 
 
-_PAGE_CACHE_VER = "v8"
+_PAGE_CACHE_VER = "v9"
 
 
 async def invalidate_page(subdomain: str, link_id: str) -> None:

